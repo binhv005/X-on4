@@ -13,6 +13,7 @@ export type DecorationPreset =
   | "blog"
   | "category"
   | "cart"
+  | "gallery"
   | "floral-soft"
   | "tools-luxe";
 
@@ -461,6 +462,113 @@ export function PageDecorations({ preset = "floral-soft", className = "" }: Page
             alt=""
             fill
             sizes="240px"
+            className="object-contain"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (preset === "gallery") {
+    return (
+      <div className={`pointer-events-none select-none overflow-hidden ${className}`}>
+        {/* Top-Left: Rose Bloom */}
+        <div className="absolute top-10 -left-10 w-52 h-52 sm:w-72 sm:h-72 opacity-25 rotate-[-15deg]">
+          <Image
+            src="/images/decorations/rose-bloom.png"
+            alt=""
+            fill
+            sizes="288px"
+            className="object-contain"
+          />
+        </div>
+        {/* Top-Right: Daisy Rose Sprig */}
+        <div className="absolute top-16 -right-10 w-52 h-52 sm:w-68 sm:h-68 opacity-25 rotate-15">
+          <Image
+            src="/images/decorations/daisy-rose-sprig.png"
+            alt=""
+            fill
+            sizes="272px"
+            className="object-contain"
+          />
+        </div>
+        {/* Upper-Mid Left: Pink Brush */}
+        <div className="absolute top-[18%] -left-8 w-40 h-52 sm:w-56 sm:h-68 opacity-20 rotate-[-25deg]">
+          <Image
+            src="/images/decorations/pink-brush.png"
+            alt=""
+            fill
+            sizes="256px"
+            className="object-contain"
+          />
+        </div>
+        {/* Upper-Mid Right: Petals Scatter */}
+        <div className="absolute top-[25%] -right-10 w-48 h-48 sm:w-64 sm:h-64 opacity-25 rotate-12">
+          <Image
+            src="/images/decorations/petals-scatter.png"
+            alt=""
+            fill
+            sizes="256px"
+            className="object-contain"
+          />
+        </div>
+        {/* Mid-Left: Chamomile Sprig */}
+        <div className="absolute top-[40%] -left-6 w-44 h-44 sm:w-60 sm:h-60 opacity-20 rotate-15">
+          <Image
+            src="/images/decorations/chamomile-sprig.png"
+            alt=""
+            fill
+            sizes="240px"
+            className="object-contain"
+          />
+        </div>
+        {/* Mid-Right: Daisy Cluster */}
+        <div className="absolute top-[48%] -right-8 w-48 h-48 sm:w-64 sm:h-64 opacity-25 rotate-[-10deg]">
+          <Image
+            src="/images/decorations/daisy-cluster.png"
+            alt=""
+            fill
+            sizes="256px"
+            className="object-contain"
+          />
+        </div>
+        {/* Lower-Mid Left: Gold Stars & Sparkles */}
+        <div className="absolute top-[65%] -left-6 w-40 h-40 sm:w-56 sm:h-56 opacity-25 rotate-12">
+          <Image
+            src="/images/decorations/gold-stars.png"
+            alt=""
+            fill
+            sizes="224px"
+            className="object-contain"
+          />
+        </div>
+        {/* Lower-Mid Right: Polish Bottle */}
+        <div className="absolute top-[72%] -right-6 w-40 h-52 sm:w-52 sm:h-64 opacity-20 rotate-[-15deg]">
+          <Image
+            src="/images/decorations/polish-bottle.png"
+            alt=""
+            fill
+            sizes="224px"
+            className="object-contain"
+          />
+        </div>
+        {/* Bottom-Left: Daisy Cluster */}
+        <div className="absolute -bottom-10 -left-10 w-52 h-52 sm:w-68 sm:h-68 opacity-25 rotate-[-12deg]">
+          <Image
+            src="/images/decorations/daisy-cluster.png"
+            alt=""
+            fill
+            sizes="272px"
+            className="object-contain"
+          />
+        </div>
+        {/* Bottom-Right: Rose Bloom */}
+        <div className="absolute -bottom-10 -right-8 w-52 h-52 sm:w-72 sm:h-72 opacity-25 rotate-15">
+          <Image
+            src="/images/decorations/rose-bloom.png"
+            alt=""
+            fill
+            sizes="288px"
             className="object-contain"
           />
         </div>

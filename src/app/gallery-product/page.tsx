@@ -29,21 +29,24 @@ export default function GalleryProductPage() {
   return (
     <div className="relative bg-white min-h-screen overflow-hidden">
       {/* Background Motifs */}
-      <PageDecorations preset="floral-soft" />
+      <PageDecorations preset="gallery" />
+
       {/* Top Full-width Banner with Top-Left Luxury Overlay Text */}
-      <div className="relative w-full overflow-hidden bg-[#f7f3ee]">
+      <div className="relative w-full overflow-hidden bg-[#f7f3ee] min-h-[420px] sm:min-h-[480px] md:min-h-[520px] lg:min-h-[560px] flex items-center">
         <Image
           src="/images/xon_gallery_banner.jpg"
           alt="X-ON Handcrafted Nail Art Gallery"
-          width={1024}
-          height={364}
+          fill
           priority
-          className="w-full h-auto block"
+          className="object-cover object-right sm:object-center"
           quality={100}
           unoptimized
         />
-        <div className="absolute inset-0 flex items-start justify-start p-6 sm:p-10 md:p-14 lg:p-20 xl:p-24 pointer-events-none">
-          <div className="max-w-lg sm:max-w-xl md:max-w-2xl space-y-3 sm:space-y-4 md:space-y-5 pointer-events-auto">
+        {/* Soft subtle gradient to guarantee crystal-clear text readability */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#f7f3ee]/95 via-[#f7f3ee]/70 to-transparent sm:from-[#f7f3ee]/90 sm:via-[#f7f3ee]/50 sm:to-transparent pointer-events-none" />
+
+        <div className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 md:px-14 lg:px-20 py-12 sm:py-16">
+          <div className="max-w-lg sm:max-w-xl md:max-w-2xl space-y-3 sm:space-y-4 md:space-y-5">
             <span className="inline-block text-xs sm:text-sm md:text-base font-bold uppercase tracking-[0.25em] text-[#8c5e32]">
               Handcrafted Artistry
             </span>
@@ -53,10 +56,10 @@ export default function GalleryProductPage() {
             <p className="text-sm sm:text-base md:text-lg text-neutral-800 font-sans max-w-lg leading-relaxed font-normal">
               Discover couture press-on sets meticulously hand-painted by master artisans for instant, salon-grade perfection.
             </p>
-            <div className="pt-2 sm:pt-3">
+            <div className="pt-2 sm:pt-4">
               <Link
                 href="/shop"
-                className="inline-flex items-center gap-2.5 px-6 py-3 sm:px-8 sm:py-4 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-bold uppercase tracking-widest rounded-md transition-all shadow-lg hover:shadow-xl hover:scale-[1.02]"
+                className="inline-flex items-center gap-2.5 px-6 py-3.5 sm:px-8 sm:py-4 bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-bold uppercase tracking-widest rounded-md transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] cursor-pointer"
               >
                 <span>Shop Collection</span>
                 <ChevronRight className="w-4 h-4" />
