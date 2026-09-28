@@ -370,9 +370,6 @@ export function Header() {
               </button>
             </div>
 
-            {/* Left spacer on desktop for perfect center alignment */}
-            <div className="hidden lg:flex items-center w-36" />
-
             {/* Center: Main Logo that shrinks smoothly until reaching min size */}
             <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
               <Link
@@ -392,18 +389,29 @@ export function Header() {
               </Link>
             </div>
 
-            {/* Right: Action Icons */}
-            <div className="flex items-center justify-end">
-              {renderActions(true)}
+            {/* Right: Action Icons (visible on mobile/tablet) */}
+            <div className="flex items-center justify-end lg:hidden">
+              {renderActions(false)}
             </div>
           </div>
         </div>
 
-        {/* Desktop Centered Navigation Bar (always centered right below the logo) */}
+        {/* Desktop Balanced Navigation Bar */}
         <nav className="hidden lg:block bg-white relative">
-          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-            <div className="flex items-center justify-center h-11 xl:h-12">
-              {renderNavLinks()}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-11 xl:h-12">
+              {/* Left spacer - symmetrically balances right actions so menu is perfectly centered */}
+              <div className="flex-1 flex justify-start" />
+
+              {/* Center: Navigation Links (shifted slightly to the left) */}
+              <div className="flex items-center justify-center shrink-0 -translate-x-6 xl:-translate-x-10">
+                {renderNavLinks()}
+              </div>
+
+              {/* Right: Action Icons */}
+              <div className="flex-1 flex items-center justify-end">
+                {renderActions(true)}
+              </div>
             </div>
           </div>
         </nav>
