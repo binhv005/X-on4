@@ -20,13 +20,19 @@ export function Header() {
   const [shopExpanded, setShopExpanded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
   const { openCart, totalCount, subtotal } = useCart();
 
   useEffect(() => {
+    let ticking = false;
     const handleScroll = () => {
-      // Show sticky header when scrolled past the main top banner (~140px)
-      setIsScrolled(window.scrollY > 140);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setScrollY(window.scrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
     handleScroll();
@@ -48,6 +54,9 @@ export function Header() {
     setMobileOpen(false);
     scrollToTop();
   };
+
+  // Scroll progress from 0 (top of page) to 1 (scrolled >= 280px for slower, smoother shrinking)
+  const progress = Math.min(1, Math.max(0, scrollY / 280));
 
   const renderActions = (showSubtotal = true) => (
     <div className="flex items-center space-x-2 sm:space-x-4 text-gray-800">
@@ -106,14 +115,14 @@ export function Header() {
         <Link
           href="/"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-3 whitespace-nowrap block"
+          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
         >
           HOME
         </Link>
       </li>
 
       {/* Shop Mega Menu */}
-      <li className="group py-3 shrink-0">
+      <li className="group py-2.5 shrink-0">
         <Link
           href="/shop"
           onClick={(e) => {
@@ -288,7 +297,7 @@ export function Header() {
         <Link
           href="/about"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-3 whitespace-nowrap block"
+          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
         >
           OUR STORY
         </Link>
@@ -298,7 +307,7 @@ export function Header() {
         <Link
           href="/sizing-chart"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-3 whitespace-nowrap block"
+          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
         >
           FIT GUIDE
         </Link>
@@ -308,7 +317,7 @@ export function Header() {
         <Link
           href="/wholesale-signup"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-3 whitespace-nowrap block"
+          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
         >
           WHOLESALE
         </Link>
@@ -318,7 +327,7 @@ export function Header() {
         <Link
           href="/blog"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-3 whitespace-nowrap block"
+          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
         >
           JOURNAL
         </Link>
@@ -328,7 +337,7 @@ export function Header() {
         <Link
           href="/contact-us"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-3 whitespace-nowrap block"
+          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
         >
           CONTACT
         </Link>
@@ -338,11 +347,18 @@ export function Header() {
 
   return (
     <>
-      {/* 1. Main Static Header in natural document flow (Zero layout shift / jump) */}
-      <header className="relative w-full bg-white border-b border-gray-100 z-30">
-        {/* Top Header Row: Centered 3x Logo on Desktop / Bar on Mobile */}
+      {/* Sticky Header with Smooth Shrinking Logo and Centered Navigation */}
+      <header
+        className="sticky top-0 z-40 w-full bg-white border-b border-gray-100 shadow-xs"
+        style={
+          {
+            "--p": progress,
+          } as React.CSSProperties
+        }
+      >
+        {/* Top Header Row: Centered Logo with Dynamic Height */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative flex items-center justify-between h-20 sm:h-28 md:h-36 lg:h-52">
+          <div className="relative flex items-center justify-between h-[calc(68px-(16px*var(--p)))] sm:h-[calc(110px-(46px*var(--p)))] md:h-[calc(140px-(70px*var(--p)))] lg:h-[calc(180px-(116px*var(--p)))] transition-[height] duration-75">
             {/* Left: Mobile hamburger */}
             <div className="flex items-center lg:hidden">
               <button
@@ -354,15 +370,15 @@ export function Header() {
               </button>
             </div>
 
-            {/* Left spacer on desktop */}
-            <div className="hidden lg:flex items-center" />
+            {/* Left spacer on desktop for perfect center alignment */}
+            <div className="hidden lg:flex items-center w-36" />
 
-            {/* Center: Main Large Logo */}
+            {/* Center: Main Logo that shrinks smoothly until reaching min size */}
             <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
               <Link
                 href="/"
                 onClick={handleLinkClick}
-                className="relative block pointer-events-auto transition-transform duration-300 hover:scale-105 h-12 sm:h-20 md:h-28 lg:h-44 w-32 sm:w-56 md:w-[380px] lg:w-[540px]"
+                className="relative block pointer-events-auto transition-transform duration-200 hover:scale-105 h-[calc(44px-(10px*var(--p)))] sm:h-[calc(76px-(32px*var(--p)))] md:h-[calc(110px-(60px*var(--p)))] lg:h-[calc(146px-(96px*var(--p)))] w-[calc(120px-(28px*var(--p)))] sm:w-[calc(220px-(90px*var(--p)))] md:w-[calc(340px-(180px*var(--p)))] lg:w-[calc(460px-(300px*var(--p)))]"
               >
                 <Image
                   src="/images/logo-xon.png"
@@ -377,73 +393,16 @@ export function Header() {
             </div>
 
             {/* Right: Action Icons */}
-            {renderActions(true)}
+            <div className="flex items-center justify-end">
+              {renderActions(true)}
+            </div>
           </div>
         </div>
 
-        {/* Desktop Centered Navigation Bar */}
+        {/* Desktop Centered Navigation Bar (always centered right below the logo) */}
         <nav className="hidden lg:block bg-white relative">
           <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-            <div className="flex items-center justify-center h-14">
-              {renderNavLinks()}
-            </div>
-          </div>
-        </nav>
-      </header>
-
-      {/* 2. Floating Sticky Header (Keeps exact centered position, logo shrunk 3x, pure white) */}
-      <header
-        className={`fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-xs transition-all duration-300 ease-in-out transform ${
-          isScrolled
-            ? "translate-y-0 opacity-100 pointer-events-auto"
-            : "-translate-y-full opacity-0 pointer-events-none"
-        }`}
-      >
-        {/* Top Header Row: Centered 1/3 Logo on Desktop & Mobile */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative flex items-center justify-between h-14 sm:h-16 lg:h-18">
-            {/* Left: Mobile hamburger */}
-            <div className="flex items-center lg:hidden">
-              <button
-                onClick={() => setMobileOpen(true)}
-                className="p-2 text-gray-800 hover:text-black focus:outline-hidden cursor-pointer"
-                aria-label="Open menu"
-              >
-                <Menu className="w-6 h-6 stroke-[1.5]" />
-              </button>
-            </div>
-
-            {/* Left spacer on desktop */}
-            <div className="hidden lg:flex items-center" />
-
-            {/* Center: Main Logo Shrunk by 3x (Centered in exact same position) */}
-            <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
-              <Link
-                href="/"
-                onClick={handleLinkClick}
-                className="relative block pointer-events-auto transition-transform duration-300 hover:scale-105 h-9 sm:h-11 md:h-12 lg:h-[58px] w-28 sm:w-36 md:w-44 lg:w-[180px]"
-              >
-                <Image
-                  src="/images/logo-xon.png"
-                  alt="X-ON Nails"
-                  fill
-                  priority
-                  unoptimized
-                  sizes="(max-width: 768px) 150px, 200px"
-                  className="object-contain"
-                />
-              </Link>
-            </div>
-
-            {/* Right: Action Icons */}
-            {renderActions(true)}
-          </div>
-        </div>
-
-        {/* Desktop Centered Navigation Bar (Centered below logo on pure white) */}
-        <nav className="hidden lg:block bg-white relative">
-          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-            <div className="flex items-center justify-center h-10 lg:h-11">
+            <div className="flex items-center justify-center h-11 xl:h-12">
               {renderNavLinks()}
             </div>
           </div>
