@@ -170,6 +170,15 @@ export function Header() {
                     Best seller
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/gallery-product"
+                    onClick={handleLinkClick}
+                    className="hover:text-rose-700 transition-colors block py-0.5"
+                  >
+                    Product Gallery
+                  </Link>
+                </li>
               </ul>
 
               <h4 className="text-[11px] font-bold text-gray-900 uppercase tracking-widest border-b border-gray-100 pb-1.5 pt-3">
@@ -573,6 +582,13 @@ export function Header() {
                       className="block py-2.5 pl-9 pr-6 hover:text-black hover:bg-neutral-100 transition-colors"
                     >
                       Y2K Design Theme
+                    </Link>
+                    <Link
+                      href="/gallery-product"
+                      onClick={handleDrawerLinkClick}
+                      className="block py-2.5 pl-9 pr-6 hover:text-black hover:bg-neutral-100 transition-colors"
+                    >
+                      Product Gallery
                     </Link>
                     <Link
                       href="/shop?shape=Almond"
