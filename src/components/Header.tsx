@@ -373,7 +373,7 @@ export function Header() {
         </div>
 
         {/* Desktop Centered Navigation Bar */}
-        <nav className="hidden lg:block border-t border-gray-100 bg-white relative">
+        <nav className="hidden lg:block bg-white relative">
           <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
             <div className="flex items-center justify-center h-14">
               {renderNavLinks()}
@@ -382,52 +382,37 @@ export function Header() {
         </nav>
       </header>
 
-      {/* 2. Floating Sticky Header (Smooth slide-down when scrolled, zero page jump) */}
+      {/* 2. Floating Sticky Header (Smooth slide-down when scrolled, centered logo shrunk 3x) */}
       <header
-        className={`fixed top-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300 ease-in-out transform ${
+        className={`fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-xs transition-all duration-300 ease-in-out transform ${
           isScrolled
             ? "translate-y-0 opacity-100 pointer-events-auto"
             : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
-        {/* Mobile Scrolled Bar */}
-        <div className="lg:hidden px-4 sm:px-6 flex items-center justify-between h-14 sm:h-16">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="p-2 text-gray-800 hover:text-black focus:outline-hidden cursor-pointer"
-            aria-label="Open menu"
-          >
-            <Menu className="w-6 h-6 stroke-[1.5]" />
-          </button>
+        {/* Top Header Row: Centered 1/3 Logo on Desktop & Mobile */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative flex items-center justify-between h-14 sm:h-16 lg:h-18">
+            {/* Left: Mobile hamburger */}
+            <div className="flex items-center lg:hidden">
+              <button
+                onClick={() => setMobileOpen(true)}
+                className="p-2 text-gray-800 hover:text-black focus:outline-hidden cursor-pointer"
+                aria-label="Open menu"
+              >
+                <Menu className="w-6 h-6 stroke-[1.5]" />
+              </button>
+            </div>
 
-          <Link
-            href="/"
-            onClick={handleLinkClick}
-            className="relative block h-9 sm:h-11 w-28 sm:w-36 transition-transform hover:scale-105"
-          >
-            <Image
-              src="/images/logo-xon.png"
-              alt="X-ON Nails"
-              fill
-              priority
-              unoptimized
-              sizes="180px"
-              className="object-contain"
-            />
-          </Link>
+            {/* Left spacer on desktop */}
+            <div className="hidden lg:flex items-center" />
 
-          {renderActions(false)}
-        </div>
-
-        {/* Desktop Scrolled Bar (Logo on left, Menu beside/center, Actions on right) */}
-        <div className="hidden lg:block max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
-          <div className="flex items-center justify-between h-20 lg:h-22 py-2">
-            <div className="flex items-center gap-4 xl:gap-6 min-w-0">
-              {/* Compact Logo */}
+            {/* Center: Main Logo Shrunk by 3x (1/3 size of top logo) */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none">
               <Link
                 href="/"
                 onClick={handleLinkClick}
-                className="relative block h-14 lg:h-16 w-36 lg:w-44 xl:w-48 transition-transform hover:scale-105 shrink-0"
+                className="relative block pointer-events-auto transition-transform duration-300 hover:scale-105 h-9 sm:h-11 md:h-12 lg:h-[58px] w-28 sm:w-36 md:w-44 lg:w-[180px]"
               >
                 <Image
                   src="/images/logo-xon.png"
@@ -435,21 +420,25 @@ export function Header() {
                   fill
                   priority
                   unoptimized
-                  sizes="250px"
-                  className="object-contain object-left"
+                  sizes="(max-width: 768px) 150px, 200px"
+                  className="object-contain"
                 />
               </Link>
-
-              {/* Navigation Links */}
-              {renderNavLinks()}
             </div>
 
-            {/* Right: Actions */}
-            <div className="flex items-center shrink-0 ml-4">
-              {renderActions(true)}
-            </div>
+            {/* Right: Action Icons */}
+            {renderActions(true)}
           </div>
         </div>
+
+        {/* Desktop Centered Navigation Bar */}
+        <nav className="hidden lg:block bg-white relative">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
+            <div className="flex items-center justify-center h-10 lg:h-11">
+              {renderNavLinks()}
+            </div>
+          </div>
+        </nav>
       </header>
 
       {/* Search Bar Dropdown */}

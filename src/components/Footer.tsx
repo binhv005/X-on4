@@ -36,21 +36,21 @@ export function Footer() {
     <footer className="bg-neutral-950 text-neutral-300 border-t border-neutral-800">
       {/* Main footer grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6">
 
-          {/* Col 1: Logo + tagline + description */}
-          <div className="space-y-4 sm:col-span-2 lg:col-span-1">
+          {/* Col 1: Logo + tagline + description (4 cols) */}
+          <div className="space-y-4 sm:col-span-2 lg:col-span-4">
             <Link
               href="/"
               className="inline-block transition-transform hover:scale-105"
             >
-              <div className="relative h-18 w-44 sm:h-20 sm:w-52">
+              <div className="relative h-28 sm:h-32 md:h-36 w-[300px] sm:w-[360px] md:w-[390px] max-w-full">
                 <Image
                   src="/images/logo-xon.png"
                   alt="X-ON"
                   fill
                   unoptimized
-                  sizes="260px"
+                  sizes="(max-width: 768px) 380px, 600px"
                   className="object-contain object-left [filter:drop-shadow(0_0_1px_rgba(255,255,255,0.9))_drop-shadow(0_0_8px_rgba(255,255,255,0.6))_drop-shadow(0_0_18px_rgba(251,113,133,0.45))]"
                 />
               </div>
@@ -58,7 +58,7 @@ export function Footer() {
             <p className="text-xs font-bold uppercase tracking-wider text-rose-400">
               Press on. Slay on. Repeat.
             </p>
-            <p className="text-xs text-white leading-relaxed max-w-xs">
+            <p className="text-xs text-white leading-relaxed max-w-sm">
               X-ON is where modern nail artistry meets effortless luxury. Handcrafted bespoke press-on nails and premium essentials designed for long-lasting salon elegance.
             </p>
 
@@ -100,7 +100,7 @@ export function Footer() {
           </div>
 
           {/* Col 2: Explore X-ON */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:col-span-3">
             <h3 className="text-xs font-bold uppercase tracking-widest text-rose-400">
               Explore X-ON
             </h3>
@@ -115,7 +115,7 @@ export function Footer() {
           </div>
 
           {/* Col 3: Partnerships & Info */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:col-span-2">
             <h3 className="text-xs font-bold uppercase tracking-widest text-rose-400">
               Partnerships &amp; Info
             </h3>
@@ -129,7 +129,7 @@ export function Footer() {
           </div>
 
           {/* Col 4: Kissimmee Studio */}
-          <div className="space-y-4">
+          <div className="space-y-4 lg:col-span-3">
             <h3 className="text-xs font-bold uppercase tracking-widest text-rose-400">
               Kissimmee Studio
             </h3>
