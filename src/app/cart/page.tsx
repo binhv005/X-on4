@@ -16,6 +16,7 @@ import {
   CreditCard,
   AlertCircle,
 } from "lucide-react";
+import { PageDecorations } from "@/components/PageDecorations";
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, subtotal } = useCart();
@@ -162,8 +163,11 @@ export default function CartPage() {
   }
 
   return (
-    <div className="bg-white min-h-screen py-12 sm:py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <div className="relative bg-white min-h-screen py-12 sm:py-20 overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="cart" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <div className="border-b border-gray-100 pb-6">
           <h1 className="text-3xl font-extrabold uppercase tracking-tight text-gray-950 font-serif">
             Your Shopping Bag

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { PageDecorations } from "@/components/PageDecorations";
 
 const bundleProducts = [
   {
@@ -53,8 +54,11 @@ export default function BundleAndSavePage() {
   };
 
   return (
-    <div className="bg-white min-h-[75vh]">
-      <section className="py-8 sm:py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative bg-white min-h-[75vh] overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="bundle" />
+
+      <section className="relative z-10 py-8 sm:py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Heading */}
         <div className="mb-6 sm:mb-8">
           <h2 className="text-xl sm:text-2xl font-semibold text-neutral-900 tracking-tight">

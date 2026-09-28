@@ -22,6 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { PageDecorations } from "@/components/PageDecorations";
 
 export default function ProductDetailPage({
   params,
@@ -168,8 +169,11 @@ export default function ProductDetailPage({
     .slice(0, 4);
 
   return (
-    <div className="bg-white min-h-screen py-10 sm:py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative bg-white min-h-screen py-10 sm:py-16 overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="category" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="text-xs text-neutral-400 mb-8 flex items-center gap-2">
           <Link href="/" className="hover:text-black">

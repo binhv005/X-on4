@@ -38,7 +38,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (heroVideoRef.current) {
-      heroVideoRef.current.play().catch(() => {});
+      heroVideoRef.current.play().catch(() => { });
     }
   }, [heroVideoIndex]);
 
@@ -111,11 +111,10 @@ export default function HomePage() {
                 type="button"
                 onClick={() => setHeroVideoIndex(idx)}
                 aria-label={`Switch to video ${idx + 1}`}
-                className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 cursor-pointer pointer-events-auto ${
-                  idx === heroVideoIndex
-                    ? "w-6 sm:w-8 bg-white shadow"
-                    : "w-2 bg-white/50 hover:bg-white/80"
-                }`}
+                className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 cursor-pointer pointer-events-auto ${idx === heroVideoIndex
+                  ? "w-6 sm:w-8 bg-white shadow"
+                  : "w-2 bg-white/50 hover:bg-white/80"
+                  }`}
               />
             ))}
           </div>
@@ -454,11 +453,9 @@ export default function HomePage() {
           {/* Right 50%: Harmonious Matching Tone with Title & Button */}
           <div className="relative flex flex-col items-center justify-center text-center px-6 sm:px-12 lg:px-16 py-12 sm:py-16 space-y-5 sm:space-y-6 bg-[#faf1ec]">
             <div className="relative z-10 space-y-3 sm:space-y-4 max-w-md">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.25em] text-rose-500 block">
-                Bespoke Nail Art Studio
-              </span>
+
               <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-tight text-neutral-900 font-sans leading-tight">
-                SHOP US IRL
+                SHOP US URL
               </h2>
               <div className="pt-3">
                 <a

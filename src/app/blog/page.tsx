@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { BlogPostItem } from "@/types/admin";
+import { PageDecorations } from "@/components/PageDecorations";
 
 const defaultBlogPosts = [
   {
@@ -72,9 +73,12 @@ export default function BlogIndexPage() {
   }, []);
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="relative bg-white min-h-screen overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="blog" />
+
       {/* Top Full-width Banner */}
-      <div className="w-full overflow-hidden bg-neutral-900">
+      <div className="w-full overflow-hidden bg-neutral-900 relative z-10">
         <Image
           src="/images/xon_blog_banner.jpg"
           alt="X-ON News & Blog Banner"
@@ -88,7 +92,7 @@ export default function BlogIndexPage() {
       </div>
 
       {/* Main Section */}
-      <section className="py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="relative z-10 py-12 sm:py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* News Heading */}
         <div className="text-center mb-10">
           <h2 className="text-xl sm:text-2xl font-bold uppercase tracking-wide text-neutral-900">

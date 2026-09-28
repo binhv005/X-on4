@@ -7,6 +7,7 @@ import productsData from "@/data/products.json";
 import { type Product } from "@/components/ProductCard";
 import { mapApiProduct } from "@/lib/productMapper";
 import { Search, ChevronRight } from "lucide-react";
+import { PageDecorations } from "@/components/PageDecorations";
 
 export default function ShopPage() {
   const [productsList, setProductsList] = useState<Product[]>(() =>
@@ -127,8 +128,11 @@ export default function ShopPage() {
   }, [productsList, searchQuery, selectedShape, selectedType, maxPrice, sortBy]);
 
   return (
-    <div className="bg-white min-h-screen py-8">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative bg-white min-h-screen py-8 overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="shop" />
+
+      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Top Breadcrumb */}
         <div className="text-xs text-neutral-400 mb-6 flex items-center gap-1.5 uppercase font-medium">
           <Link href="/" className="hover:text-black">

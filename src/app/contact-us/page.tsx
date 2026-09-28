@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Phone, Mail, MapPin, Clock, Send, CheckCircle2 } from "lucide-react";
+import { PageDecorations } from "@/components/PageDecorations";
 
 export default function ContactUsPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -74,8 +75,11 @@ export default function ContactUsPage() {
   };
 
   return (
-    <div className="bg-white min-h-screen py-16 sm:py-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+    <div className="relative bg-white min-h-screen py-16 sm:py-24 overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="contact" />
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto">
           <span className="text-xs font-bold uppercase tracking-widest text-neutral-400">

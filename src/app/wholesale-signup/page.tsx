@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, ArrowRight } from "lucide-react";
+import { PageDecorations } from "@/components/PageDecorations";
 
 export default function WholesaleSignupPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -81,8 +82,11 @@ export default function WholesaleSignupPage() {
   };
 
   return (
-    <div className="bg-white min-h-screen py-16 sm:py-24">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+    <div className="relative bg-white min-h-screen py-16 sm:py-24 overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="wholesale" />
+
+      <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         {/* Header */}
         <div className="text-center space-y-3">
           <span className="text-xs font-bold uppercase tracking-widest text-neutral-400">

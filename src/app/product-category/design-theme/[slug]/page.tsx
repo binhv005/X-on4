@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ProductCard, type Product } from "@/components/ProductCard";
 import productsData from "@/data/products.json";
 import { mapApiProduct } from "@/lib/productMapper";
+import { PageDecorations } from "@/components/PageDecorations";
 
 const themeDescriptions: Record<string, { title: string; desc: string }> = {
   "3d": {
@@ -72,8 +73,11 @@ export default function DesignThemeCategoryPage({
   const displayProducts = filtered.length > 0 ? filtered : productsList.slice(0, 12);
 
   return (
-    <div className="bg-white min-h-screen py-12 sm:py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative bg-white min-h-screen py-12 sm:py-16 overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="category" />
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <div className="text-xs text-neutral-400 mb-6 flex items-center gap-2">
           <Link href="/" className="hover:text-black">

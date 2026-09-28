@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import siteContent from "@/data/site-content.json";
 import { Calendar, ArrowLeft, ArrowRight } from "lucide-react";
-
 import { parseBlogContentToHtml } from "@/lib/blogParser";
+import { PageDecorations } from "@/components/PageDecorations";
 
 interface BlogPost {
   id?: string;
@@ -105,8 +105,11 @@ export default function BlogPostDetailPage({
     .slice(0, 2);
 
   return (
-    <div className="bg-white min-h-screen py-12 sm:py-20">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+    <div className="relative bg-white min-h-screen py-12 sm:py-20 overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="blog" />
+
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         {/* Navigation back */}
         <Link
           href="/blog"

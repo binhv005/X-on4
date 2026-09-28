@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { Sparkles, Ruler, Check, HelpCircle, Layers } from "lucide-react";
+import { PageDecorations } from "@/components/PageDecorations";
 
 interface SizeRow {
   size: string;
@@ -75,9 +76,12 @@ export default function SizingChartPage() {
   const [activeTab, setActiveTab] = useState<"size" | "shapes" | "length">("size");
 
   return (
-    <div className="bg-white min-h-screen text-neutral-900">
+    <div className="relative bg-white min-h-screen text-neutral-900 overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="sizing-chart" />
+
       {/* 1. TOP BANNER IMAGE */}
-      <div className="w-full overflow-hidden bg-neutral-100">
+      <div className="w-full overflow-hidden bg-neutral-100 relative z-10">
         <Image
           src="/images/ChatGPT-Image-18_51_04-20-thg-7-2026.png"
           alt="X-ON Sizing Chart Banner"
@@ -90,7 +94,7 @@ export default function SizingChartPage() {
         />
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 space-y-12">
         {/* 2. HEADER & INTRO */}
         <div className="text-center space-y-3 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 text-neutral-800 text-xs font-semibold uppercase tracking-widest">

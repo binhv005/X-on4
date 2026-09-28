@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Image from "next/image";
 import gcsTabs from "@/data/gcs-tabs.json";
 import { X, ZoomIn } from "lucide-react";
+import { PageDecorations } from "@/components/PageDecorations";
 
 export default function GalleryComingSoonPage() {
   const [activeTab, setActiveTab] = useState<
@@ -22,8 +23,11 @@ export default function GalleryComingSoonPage() {
   const currentImages = (gcsTabs as Record<string, string[]>)[activeTab] || [];
 
   return (
-    <div className="bg-white min-h-screen py-10 sm:py-16">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative bg-white min-h-screen py-10 sm:py-16 overflow-hidden">
+      {/* Background Motifs */}
+      <PageDecorations preset="floral-soft" />
+
+      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Title */}
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold uppercase tracking-widest text-gray-900 font-serif">
