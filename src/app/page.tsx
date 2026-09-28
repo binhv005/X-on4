@@ -261,6 +261,22 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Mobile Video 1: Between Collection & Best Seller */}
+      <div className="md:hidden w-full overflow-hidden bg-black relative aspect-[9/16] max-h-[540px]">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          controls={false}
+          disablePictureInPicture
+          disableRemotePlayback
+          poster="/images/IMG_7098.JPG"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+        >
+          <source src="/videos/1K34PRO84_DMCL0D.mp4" type="video/mp4" />
+        </video>
+      </div>
 
       {/* 4. SECTION: BEST SELLER (Color 2: Pure White #ffffff with Brush, Daisies & Stars Motifs) */}
       <section className="relative py-14 sm:py-20 bg-white w-full overflow-hidden">
@@ -349,6 +365,23 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Mobile Video 2: Between Best Seller & Reviews */}
+      <div className="md:hidden w-full overflow-hidden bg-black relative aspect-[9/16] max-h-[540px]">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          controls={false}
+          disablePictureInPicture
+          disableRemotePlayback
+          poster="/images/IMG_7099.JPG"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+        >
+          <source src="/videos/1K34PRO8K_DMCL0D.mp4" type="video/mp4" />
+        </video>
+      </div>
+
       {/* 5. SECTION: OUR REVIEWS (Color 1: Blush Pink #faece9 with Daisy & Scissors Motifs) */}
       <section className="relative py-16 bg-[#faece9] border-t border-b border-[#f3dedb] w-full overflow-hidden">
         {/* Background Decorative Motifs */}
@@ -430,6 +463,23 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Mobile Video 3: Between Reviews & Shop US IRL */}
+      <div className="md:hidden w-full overflow-hidden bg-black relative aspect-[9/16] max-h-[540px]">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          controls={false}
+          disablePictureInPicture
+          disableRemotePlayback
+          poster="/images/IMG_7100.JPG"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+        >
+          <source src="/videos/1K34PRO8E_DMCL0D.mp4" type="video/mp4" />
+        </video>
+      </div>
 
       {/* 7. SECTION: SHOP US IRL - Seamless Harmonious Split */}
       <section className="relative w-full overflow-hidden bg-[#faf1ec] border-t border-[#eedcd2]">
