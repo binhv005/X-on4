@@ -23,12 +23,39 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, slug, sku, price } = body;
 
-    if (!name || !price) {
+    if (!name || name.trim().length < 3) {
       return NextResponse.json(
-        { success: false, message: "Product name and price are required" },
+        { success: false, message: "Product name must be at least 3 characters" },
         { status: 400 }
       );
     }
+
+    const numericPrice = Number(price);
+    if (isNaN(numericPrice) || numericPrice <= 0) {
+      return NextResponse.json(
+        { success: false, message: "Price must be a positive number greater than 0" },
+        { status: 400 }
+      );
+    }
+
+    let numericSalePrice: number | null = null;
+    if (body.salePrice !== undefined && body.salePrice !== null && body.salePrice !== "") {
+      numericSalePrice = Number(body.salePrice);
+      if (isNaN(numericSalePrice) || numericSalePrice <= 0) {
+        return NextResponse.json(
+          { success: false, message: "Sale price must be a positive number greater than 0" },
+          { status: 400 }
+        );
+      }
+      if (numericSalePrice >= numericPrice) {
+        return NextResponse.json(
+          { success: false, message: "Sale price must be strictly lower than regular price" },
+          { status: 400 }
+        );
+      }
+    }
+
+    const numericStock = Math.max(0, parseInt(body.stock) || 0);
 
     const autoSlug =
       slug ||
@@ -37,19 +64,31 @@ export async function POST(req: NextRequest) {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "");
 
-    const autoSku = sku || `XON-${Math.floor(1000 + Math.random() * 9000)}`;
+    const autoSku = sku?.trim() || `XON-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Check SKU duplicate
+    const existingProducts = DataStore.getProducts({ limit: 500 }).products;
+    const isSkuTaken = existingProducts.some(
+      (p) => p.sku?.toLowerCase() === autoSku.toLowerCase()
+    );
+    if (isSkuTaken) {
+      return NextResponse.json(
+        { success: false, message: `SKU "${autoSku}" already exists. Please choose a unique SKU.` },
+        { status: 400 }
+      );
+    }
 
     const newProduct = DataStore.createProduct({
-      name,
+      name: name.trim(),
       slug: autoSlug,
       sku: autoSku,
       description: body.description || "",
       shortDescription: body.shortDescription || "",
-      price: Number(price),
-      salePrice: body.salePrice ? Number(body.salePrice) : null,
-      stock: Number(body.stock || 0),
+      price: numericPrice,
+      salePrice: numericSalePrice,
+      stock: numericStock,
       sizeStock: body.sizeStock || undefined,
-      images: body.images || ["/images/IMG_7098.webp"],
+      images: Array.isArray(body.images) && body.images.length > 0 ? body.images : ["/images/IMG_7098.webp"],
       thumbnail: body.thumbnail || body.images?.[0] || "/images/IMG_7098.webp",
       category: body.category || "Handmade Nails",
       collection: body.collection || "",

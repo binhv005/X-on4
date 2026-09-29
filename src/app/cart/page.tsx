@@ -119,7 +119,7 @@ export default function CartPage() {
               Thank You For Your Order!
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-md mx-auto">
-              Your order has been received and saved to the Admin Dashboard. Your nail set is being handcrafted with care by X-ON nail artists.
+              Your order has been received successfully. Your nail set is being handcrafted with care by X-ON nail artists.
             </p>
           </div>
 
@@ -143,18 +143,12 @@ export default function CartPage() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <div className="flex items-center justify-center pt-2">
             <Link
               href="/shop"
-              className="w-full sm:w-auto px-8 py-3 bg-black hover:bg-neutral-800 text-white font-semibold text-xs uppercase tracking-widest rounded-full transition-colors shadow-md"
+              className="px-8 py-3 bg-black hover:bg-neutral-800 text-white font-semibold text-xs uppercase tracking-widest rounded-full transition-colors shadow-md"
             >
               Continue Shopping
-            </Link>
-            <Link
-              href="/admin/orders"
-              className="w-full sm:w-auto px-6 py-3 bg-white hover:bg-neutral-100 border border-neutral-200 text-neutral-800 font-semibold text-xs uppercase tracking-widest rounded-full transition-colors"
-            >
-              View in Admin Dashboard
             </Link>
           </div>
         </div>
@@ -389,6 +383,8 @@ export default function CartPage() {
                     />
                   </div>
 
+                  {/* City, State, Zip Code */}
+                  {/*
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="block text-[10px] font-semibold text-gray-700 mb-1">City</label>
@@ -418,7 +414,10 @@ export default function CartPage() {
                       />
                     </div>
                   </div>
+                  */}
 
+                  {/* Payment Method */}
+                  {/*
                   <div>
                     <label className="block text-[11px] font-semibold text-gray-700 mb-1">
                       Payment Method
@@ -433,6 +432,7 @@ export default function CartPage() {
                       <option value="Cash on Delivery">Cash on Delivery (COD)</option>
                     </select>
                   </div>
+                  */}
 
                   <div>
                     <label className="block text-[11px] font-semibold text-gray-700 mb-1">

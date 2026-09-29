@@ -14,6 +14,12 @@ import {
   Check,
   Plus,
   FolderPlus,
+  Palette,
+  Tag,
+  Layers,
+  Scissors,
+  Ruler,
+  ShoppingBag,
 } from "lucide-react";
 
 interface ProductFormProps {
@@ -21,10 +27,57 @@ interface ProductFormProps {
   isEdit?: boolean;
 }
 
-const SHAPE_OPTIONS = ["Almond", "Coffin", "Square", "Oval", "Stiletto"];
-const SIZE_OPTIONS = ["XS", "S", "M", "L", "Custom"];
-const DESIGN_THEME_OPTIONS = ["3D", "Flower", "Y2K"];
-const LENGTH_OPTIONS = ["Short", "Medium", "Long", "Extra Long"];
+const DEFAULT_SHAPES = [
+  "Almond",
+  "Coffin",
+  "Oval",
+  "Round",
+  "Square",
+  "Stiletto",
+];
+
+const DEFAULT_SIZES = ["XS", "S", "M", "L", "Custom"];
+
+const DEFAULT_DESIGN_THEMES = [
+  "3D",
+  "Flower",
+  "Y2K",
+  "Cat Eye",
+  "Minimalist",
+  "French Tip",
+  "Glitter",
+  "Chrome",
+  "Gradient",
+  "Cute / Cartoon",
+  "Abstract",
+];
+
+const DEFAULT_COLORS = [
+  { name: "Pink", hex: "#f472b6" },
+  { name: "Nude / Beige", hex: "#e2cbaf" },
+  { name: "White", hex: "#ffffff", border: true },
+  { name: "Red / Crimson", hex: "#e11d48" },
+  { name: "Black", hex: "#18181b" },
+  { name: "Blue", hex: "#38bdf8" },
+  { name: "Purple / Lavender", hex: "#c084fc" },
+  { name: "Green / Emerald", hex: "#4ade80" },
+  { name: "Gold / Shimmer", hex: "#eab308" },
+  { name: "Silver / Chrome", hex: "#cbd5e1" },
+  { name: "Pastel", hex: "#fed7aa" },
+  { name: "Multi-color", hex: "linear-gradient(135deg, #f472b6, #38bdf8, #facc15)" },
+];
+
+const DEFAULT_LENGTHS = ["Short", "Medium", "Long", "Extra Long"];
+
+const DEFAULT_PRODUCT_TYPES = [
+  "Handmade X-ON Nails",
+  "Best Seller",
+  "Cold Gel Glue",
+  "Cold Gel Remover",
+  "Press-On Nails",
+  "Accessories & Care",
+  "Bundle & Save",
+];
 
 export function generateSlug(text: string): string {
   return text
@@ -41,6 +94,63 @@ export function generateSlug(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+export function getKnownColorHex(name: string): string {
+  if (!name) return "#cbd5e1";
+  const trimmed = name.trim();
+  if (trimmed.startsWith("#") || trimmed.startsWith("rgb") || trimmed.startsWith("linear-gradient")) {
+    return trimmed;
+  }
+  const lower = trimmed.toLowerCase();
+  const KNOWN_COLORS: Record<string, string> = {
+    orange: "#f97316",
+    coral: "#fb7185",
+    pink: "#f472b6",
+    "hot pink": "#ec4899",
+    rose: "#f43f5e",
+    nude: "#e2cbaf",
+    beige: "#e2cbaf",
+    white: "#ffffff",
+    red: "#e11d48",
+    crimson: "#e11d48",
+    black: "#18181b",
+    blue: "#38bdf8",
+    "sky blue": "#0ea5e9",
+    navy: "#1e3a8a",
+    purple: "#c084fc",
+    lavender: "#c084fc",
+    violet: "#8b5cf6",
+    green: "#4ade80",
+    emerald: "#10b981",
+    mint: "#6ee7b7",
+    olive: "#84cc16",
+    gold: "#eab308",
+    yellow: "#facc15",
+    amber: "#f59e0b",
+    silver: "#cbd5e1",
+    gray: "#9ca3af",
+    grey: "#9ca3af",
+    charcoal: "#374151",
+    brown: "#78350f",
+    mocha: "#5c3d2e",
+    pastel: "#fed7aa",
+    cyan: "#06b6d4",
+    teal: "#14b8a6",
+    turquoise: "#2dd4bf",
+    magenta: "#d946ef",
+    plum: "#701a75",
+    peach: "#fbcfe8",
+    maroon: "#881337",
+  };
+
+  for (const [key, hex] of Object.entries(KNOWN_COLORS)) {
+    if (lower.includes(key)) {
+      return hex;
+    }
+  }
+
+  return "#e2cbaf";
+}
+
 export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
   const router = useRouter();
   const { success, error } = useToast();
@@ -49,6 +159,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
 
+  // Form Fields
   const [name, setName] = useState(initialData?.name || "");
   const [slug, setSlug] = useState(initialData?.slug || "");
   const [isSlugManual, setIsSlugManual] = useState<boolean>(Boolean(isEdit && initialData?.slug));
@@ -64,18 +175,58 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
   const [category, setCategory] = useState(
     initialData?.category || "Handmade Nails"
   );
-  const [designThemes, setDesignThemes] = useState<string[]>(
-    initialData?.designThemes || []
+  const [productType, setProductType] = useState<string>(
+    initialData?.productType || "Handmade X-ON Nails"
   );
-  const [length, setLength] = useState<string>(
-    initialData?.length || "Extra Long"
-  );
-  const [collection, setCollection] = useState(initialData?.collection || "Spring Luxe 2026");
+
+  // 1. Shapes
   const [shapes, setShapes] = useState<string[]>(
-    initialData?.shapes || ["Almond", "Coffin"]
+    initialData?.shapes && initialData.shapes.length > 0 ? initialData.shapes : ["Almond", "Coffin"]
   );
+
+  // 2. Design Themes
+  const [availableThemes, setAvailableThemes] = useState<string[]>(DEFAULT_DESIGN_THEMES);
+  const [designThemes, setDesignThemes] = useState<string[]>(
+    initialData?.designThemes && initialData.designThemes.length > 0
+      ? initialData.designThemes
+      : ["3D", "Flower"]
+  );
+  const [customThemeInput, setCustomThemeInput] = useState("");
+
+  // 3. Colors
+  const [availableColors, setAvailableColors] = useState<{ name: string; hex: string; border?: boolean }[]>(() => {
+    const list = [...DEFAULT_COLORS];
+    if (Array.isArray(initialData?.colorOptions) && initialData.colorOptions.length > 0) {
+      initialData.colorOptions.forEach((co) => {
+        const existingIdx = list.findIndex((item) => item.name.toLowerCase() === co.name.toLowerCase());
+        if (existingIdx >= 0) {
+          list[existingIdx] = { ...list[existingIdx], hex: co.hex || list[existingIdx].hex };
+        } else {
+          list.push({ name: co.name, hex: co.hex || getKnownColorHex(co.name), border: co.border });
+        }
+      });
+    } else if (initialData?.colors) {
+      initialData.colors.forEach((c) => {
+        if (!list.some((item) => item.name.toLowerCase() === c.toLowerCase())) {
+          list.push({ name: c, hex: getKnownColorHex(c) });
+        }
+      });
+    }
+    return list;
+  });
+  const [colors, setColors] = useState<string[]>(
+    initialData?.colors && initialData.colors.length > 0
+      ? initialData.colors
+      : ["Pink", "Nude / Beige"]
+  );
+  const [customColorHex, setCustomColorHex] = useState("#f97316");
+  const [customColorName, setCustomColorName] = useState("");
+
+  // 4. Sizes & Stock Breakdown
   const [sizes, setSizes] = useState<string[]>(
-    initialData?.sizes || ["XS", "S", "M", "L"]
+    initialData?.sizes && initialData.sizes.length > 0
+      ? initialData.sizes
+      : ["XS", "S", "M", "L"]
   );
   const [sizeStock, setSizeStock] = useState<Record<string, number>>(() => {
     if (initialData?.sizeStock && Object.keys(initialData.sizeStock).length > 0) {
@@ -94,9 +245,19 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
     const initSizes = initialData?.sizes || ["XS", "S", "M", "L"];
     return (initSizes.length * 5).toString();
   });
+
+  // 5. Length
+  const [length, setLength] = useState<string>(
+    initialData?.length || "Medium"
+  );
+
+  // 6. Badges & Tags
+  const [collection, setCollection] = useState(initialData?.collection || "Spring Luxe 2026");
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(
-    initialData?.tags || ["handmade", "grip-x", "reusable"]
+    initialData?.tags && initialData.tags.length > 0
+      ? initialData.tags
+      : ["handmade", "grip-x", "reusable"]
   );
   const [bestSeller, setBestSeller] = useState(initialData?.bestSeller || false);
   const [handmadeGripX, setHandmadeGripX] = useState(
@@ -108,8 +269,11 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
     initialData?.status || "active"
   );
 
+  // Images
   const [images, setImages] = useState<string[]>(
-    initialData?.images || ["/images/IMG_7098.webp"]
+    initialData?.images && initialData.images.length > 0
+      ? initialData.images
+      : ["/images/IMG_7098.webp"]
   );
   const [thumbnail, setThumbnail] = useState(
     initialData?.thumbnail || initialData?.images?.[0] || "/images/IMG_7098.webp"
@@ -122,7 +286,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
     fetch("/api/categories")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) setCategories(data.data);
+        if (data.success && Array.isArray(data.data)) setCategories(data.data);
       })
       .catch((e) => console.error(e));
   }, []);
@@ -152,7 +316,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
         setNewCategoryName("");
         setIsAddingCategory(false);
       } else {
-        error(json.message || "Failed to create category");
+        error(json.message || "Failed to add category");
       }
     } catch {
       error("Error creating category");
@@ -161,7 +325,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
     }
   };
 
-  // Auto generate slug from name in real-time
+  // Auto generate slug from name
   const handleNameChange = (val: string) => {
     setName(val);
     if (!isSlugManual) {
@@ -179,6 +343,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
     setSlug(generateSlug(name));
   };
 
+  // 1. Shapes Toggles
   const toggleShape = (shape: string) => {
     if (shapes.includes(shape)) {
       setShapes(shapes.filter((s) => s !== shape));
@@ -187,6 +352,58 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
     }
   };
 
+  // 2. Theme Toggles
+  const toggleDesignTheme = (theme: string) => {
+    if (designThemes.includes(theme)) {
+      setDesignThemes(designThemes.filter((t) => t !== theme));
+    } else {
+      setDesignThemes([...designThemes, theme]);
+    }
+  };
+
+  const handleAddCustomTheme = () => {
+    const val = customThemeInput.trim();
+    if (!val) return;
+    if (!availableThemes.includes(val)) {
+      setAvailableThemes([...availableThemes, val]);
+    }
+    if (!designThemes.includes(val)) {
+      setDesignThemes([...designThemes, val]);
+    }
+    setCustomThemeInput("");
+  };
+
+  // 3. Color Toggles
+  const toggleColor = (colorName: string) => {
+    if (colors.includes(colorName)) {
+      setColors(colors.filter((c) => c !== colorName));
+    } else {
+      setColors([...colors, colorName]);
+    }
+  };
+
+  const handleDeleteColor = (colorName: string) => {
+    setAvailableColors((prev) => prev.filter((c) => c.name !== colorName));
+    setColors((prev) => prev.filter((c) => c !== colorName));
+  };
+
+  const handleResetColors = () => {
+    setAvailableColors(DEFAULT_COLORS);
+  };
+
+  const handleAddCustomColor = () => {
+    const nameVal = customColorName.trim() || customColorHex;
+    if (!nameVal) return;
+    if (!availableColors.some((c) => c.name.toLowerCase() === nameVal.toLowerCase())) {
+      setAvailableColors((prev) => [...prev, { name: nameVal, hex: customColorHex }]);
+    }
+    if (!colors.includes(nameVal)) {
+      setColors((prev) => [...prev, nameVal]);
+    }
+    setCustomColorName("");
+  };
+
+  // 4. Size & Stock Matrix
   const toggleSize = (size: string) => {
     if (sizes.includes(size)) {
       const nextSizes = sizes.filter((s) => s !== size);
@@ -214,6 +431,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
     setStock(total.toString());
   };
 
+  // 5. Tags
   const handleAddTag = () => {
     if (!tagInput.trim()) return;
     if (!tags.includes(tagInput.trim().toLowerCase())) {
@@ -226,90 +444,145 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
     setTags(tags.filter((t) => t !== tagToRemove));
   };
 
-  const toggleDesignTheme = (theme: string) => {
-    if (designThemes.includes(theme)) {
-      setDesignThemes(designThemes.filter((t) => t !== theme));
-    } else {
-      setDesignThemes([...designThemes, theme]);
-    }
-  };
-
+  // Upload Images
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const fileList = Array.from(files);
     setIsUploading(true);
+    const uploadedUrls: string[] = [];
+    let failedCount = 0;
+
     try {
       const token = localStorage.getItem("admin_token");
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const formData = new FormData();
-        formData.append("file", file);
+      await Promise.all(
+        fileList.map(async (file) => {
+          try {
+            const formData = new FormData();
+            formData.append("file", file);
 
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
+            const res = await fetch("/api/upload", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            });
 
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data?.url) {
-            setImages((prev) => [...prev, json.data.url]);
-            if (!thumbnail) setThumbnail(json.data.url);
+            if (res.ok) {
+              const json = await res.json();
+              if (json.success && json.data?.url) {
+                uploadedUrls.push(json.data.url);
+              } else {
+                failedCount++;
+              }
+            } else {
+              failedCount++;
+            }
+          } catch {
+            failedCount++;
           }
-        }
+        })
+      );
+
+      if (uploadedUrls.length > 0) {
+        setImages((prev) => {
+          const combined = [...prev, ...uploadedUrls];
+          if (!thumbnail && combined.length > 0) {
+            setThumbnail(combined[0]);
+          }
+          return combined;
+        });
+        success(`Successfully uploaded ${uploadedUrls.length} image(s)`);
       }
-      success("Image uploaded successfully");
+
+      if (failedCount > 0) {
+        error(`Failed to upload ${failedCount} image(s)`);
+      }
     } catch {
-      error("Failed to upload image");
+      error("Failed to process image uploads");
     } finally {
       setIsUploading(false);
+      // Reset input value so user can upload same or more files
+      if (e.target) {
+        e.target.value = "";
+      }
     }
   };
 
   const handleRemoveImage = (imgUrl: string) => {
-    const nextImages = images.filter((img) => img !== imgUrl);
-    setImages(nextImages);
+    const updated = images.filter((img) => img !== imgUrl);
+    setImages(updated);
     if (thumbnail === imgUrl) {
-      setThumbnail(nextImages[0] || "");
+      setThumbnail(updated[0] || "");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      error("Product name is required");
+
+    const trimmedName = name.trim();
+    if (!trimmedName || trimmedName.length < 3) {
+      error("Product title must be at least 3 characters long");
       return;
     }
-    if (!price || isNaN(Number(price))) {
-      error("Please enter a valid price");
+
+    const numPrice = Number(price);
+    if (!price || isNaN(numPrice) || numPrice <= 0) {
+      error("Regular price must be a positive number greater than $0.00");
+      return;
+    }
+
+    let numSalePrice: number | null = null;
+    if (salePrice && salePrice.trim() !== "") {
+      numSalePrice = Number(salePrice);
+      if (isNaN(numSalePrice) || numSalePrice <= 0) {
+        error("Sale price must be greater than $0.00");
+        return;
+      }
+      if (numSalePrice >= numPrice) {
+        error("Sale price must be strictly lower than regular price");
+        return;
+      }
+    }
+
+    const numStock = parseInt(stock) || 0;
+    if (numStock < 0) {
+      error("Stock inventory cannot be negative");
+      return;
+    }
+
+    if (images.length === 0) {
+      error("Please upload at least 1 product image before publishing");
       return;
     }
 
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem("admin_token");
-      const finalSlug = slug.trim() || generateSlug(name) || `product-${Date.now()}`;
-      const payload = {
-        name,
+      const finalSlug = slug.trim() || generateSlug(trimmedName) || `product-${Date.now()}`;
+      const payload: Partial<ProductItem> = {
+        name: trimmedName,
         slug: finalSlug,
-        sku: sku || `XON-${Math.floor(1000 + Math.random() * 9000)}`,
+        sku: sku.trim() || `XON-${Math.floor(1000 + Math.random() * 9000)}`,
         description,
         shortDescription,
-        price: Number(price),
-        salePrice: salePrice ? Number(salePrice) : null,
-        stock: Number(stock || 0),
+        price: numPrice,
+        salePrice: numSalePrice,
+        stock: numStock,
         sizeStock,
         category,
         collection,
+        productType,
         shapes,
         sizes,
         designThemes,
+        colors,
+        colorOptions: availableColors.filter((c) => colors.includes(c.name)),
         length,
+        lengths: [length],
         tags,
         featured: handmadeGripX,
-        handmadeGripX: handmadeGripX,
+        handmadeGripX,
         bestSeller,
         status,
         images: images.length > 0 ? images : ["/images/IMG_7098.webp"],
@@ -345,7 +618,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Top Header Actions */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/products"
@@ -358,7 +631,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
               {isEdit ? `Edit: ${initialData?.name}` : "Create New Product"}
             </h1>
             <p className="text-xs text-neutral-500">
-              Configure details, photography, shapes, sizing, and pricing.
+              Configure details, photography, shapes, design theme, colors, sizing, length, and pricing.
             </p>
           </div>
         </div>
@@ -384,12 +657,13 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Basic Details (2 cols) */}
+        {/* Left Column: Basic Details & Variants (2 cols) */}
         <div className="lg:col-span-2 space-y-6">
           {/* General Information */}
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-neutral-200/80 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-900">
-              General Information
+            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-2">
+              <Tag className="w-4 h-4 text-amber-600" />
+              <span>General Information</span>
             </h2>
 
             <div>
@@ -401,7 +675,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                 required
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
-                placeholder="e.g. Handmade Velvet Shimmer Press-On Nails"
+                placeholder="e.g. Handmade Velvet Cat Eye Shimmer Press-On Nails"
                 className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-amber-500 focus:bg-white"
               />
             </div>
@@ -426,7 +700,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                   type="text"
                   value={slug}
                   onChange={(e) => handleManualSlugChange(e.target.value)}
-                  placeholder="handmade-velvet-shimmer"
+                  placeholder="handmade-velvet-cat-eye"
                   className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-900 font-mono focus:outline-none focus:border-amber-500 focus:bg-white"
                 />
               </div>
@@ -444,12 +718,39 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                 />
               </div>
             </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                Short Description
+              </label>
+              <textarea
+                rows={2}
+                value={shortDescription}
+                onChange={(e) => setShortDescription(e.target.value)}
+                placeholder="Brief summary displayed on product cards and quick view..."
+                className="w-full px-3.5 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-amber-500 focus:bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1">
+                Full Description & Nail Application Guide
+              </label>
+              <textarea
+                rows={4}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Comprehensive details on nail craftsmanship, materials, wear time, and removal tips..."
+                className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-amber-500 focus:bg-white"
+              />
+            </div>
           </div>
 
           {/* Pricing and Stock */}
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-neutral-200/80 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-900">
-              Pricing & Inventory
+            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-amber-600" />
+              <span>Pricing & Inventory</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -497,31 +798,36 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
             </div>
           </div>
 
-          {/* Nail Shapes & Sizes Options */}
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-neutral-200/80 shadow-xs space-y-4">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-900">
-              Nail Variants (Shapes & Sizes)
+          {/* ATTRIBUTES 1: SHAPES & COLORS */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-neutral-200/80 shadow-xs space-y-6">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-2">
+              <Scissors className="w-4 h-4 text-amber-600" />
+              <span>Nail Shapes & Colors</span>
             </h2>
 
+            {/* 1. SHAPES */}
             <div>
-              <label className="block text-xs font-semibold text-neutral-700 mb-2">
-                Available Nail Shapes
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-bold text-neutral-900 uppercase tracking-wider">
+                  Available Shapes ({shapes.length} selected)
+                </label>
+              </div>
+
               <div className="flex flex-wrap gap-2">
-                {SHAPE_OPTIONS.map((shape) => {
+                {DEFAULT_SHAPES.map((shape) => {
                   const isSelected = shapes.includes(shape);
                   return (
                     <button
                       type="button"
                       key={shape}
                       onClick={() => toggleShape(shape)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border ${
                         isSelected
-                          ? "bg-amber-600 text-white shadow-xs"
-                          : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                          ? "bg-amber-600 text-white border-amber-600 shadow-xs font-bold"
+                          : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50"
                       }`}
                     >
-                      {isSelected && <Check className="w-3.5 h-3.5" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
                       <span>{shape}</span>
                     </button>
                   );
@@ -529,12 +835,126 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
               </div>
             </div>
 
+            {/* 2. COLORS */}
+            <div className="pt-4 border-t border-neutral-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <label className="block text-xs font-bold text-neutral-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Palette className="w-3.5 h-3.5 text-rose-600" />
+                    <span>Color Palette ({colors.length} selected)</span>
+                  </label>
+                  {availableColors.length !== DEFAULT_COLORS.length && (
+                    <button
+                      type="button"
+                      onClick={handleResetColors}
+                      className="text-[10px] text-neutral-400 hover:text-neutral-700 underline font-medium cursor-pointer"
+                    >
+                      Reset Defaults
+                    </button>
+                  )}
+                </div>
+
+                {/* Color Picker + Name Input + Add Button */}
+                <div className="flex items-center gap-1.5 bg-neutral-50 p-1 rounded-xl border border-neutral-200 shadow-2xs">
+                  {/* Color Picker square */}
+                  <div
+                    className="relative flex items-center justify-center w-7 h-7 rounded-lg overflow-hidden border border-neutral-300 shadow-xs shrink-0 cursor-pointer"
+                    style={{ backgroundColor: customColorHex }}
+                    title="Click to pick custom color on palette"
+                  >
+                    <input
+                      type="color"
+                      value={customColorHex}
+                      onChange={(e) => setCustomColorHex(e.target.value)}
+                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                    />
+                  </div>
+
+                  <input
+                    type="text"
+                    value={customColorName}
+                    onChange={(e) => setCustomColorName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomColor();
+                      }
+                    }}
+                    placeholder="Color Name (e.g. Orange, Coral)"
+                    className="px-2.5 py-1 bg-white border border-neutral-200 rounded-lg text-xs text-neutral-900 focus:outline-none focus:border-rose-500 w-36 sm:w-48"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleAddCustomColor}
+                    className="px-2.5 py-1 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+                    title="Add custom color"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {availableColors.map((c) => {
+                  const isSelected = colors.includes(c.name);
+                  return (
+                    <div
+                      key={c.name}
+                      onClick={() => toggleColor(c.name)}
+                      className={`group/pill px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer border select-none ${
+                        isSelected
+                          ? "bg-neutral-900 text-white border-neutral-900 shadow-xs"
+                          : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50"
+                      }`}
+                    >
+                      <span
+                        className="w-3.5 h-3.5 rounded-full inline-block shrink-0 shadow-2xs"
+                        style={{
+                          background: c.hex,
+                          border: c.border ? "1px solid #d4d4d8" : "none",
+                        }}
+                      />
+                      <span>{c.name}</span>
+                      {isSelected && <Check className="w-3 h-3 text-amber-400 shrink-0" />}
+
+                      {/* Delete Color Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteColor(c.name);
+                        }}
+                        className={`p-0.5 rounded-full transition-all cursor-pointer opacity-70 hover:opacity-100 ${
+                          isSelected
+                            ? "hover:bg-neutral-800 text-neutral-300 hover:text-white"
+                            : "hover:bg-neutral-200 text-neutral-400 hover:text-rose-600"
+                        }`}
+                        title={`Delete "${c.name}"`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* ATTRIBUTES 2: SIZES & INVENTORY PER SIZE */}
+          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-neutral-200/80 shadow-xs space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-2">
+              <Ruler className="w-4 h-4 text-amber-600" />
+              <span>Nail Sizes & Inventory Breakdown</span>
+            </h2>
+
             <div>
               <label className="block text-xs font-semibold text-neutral-700 mb-2">
-                Available Nail Sizes
+                Available Sizes ({sizes.length} selected)
               </label>
               <div className="flex flex-wrap gap-2">
-                {SIZE_OPTIONS.map((sz) => {
+                {DEFAULT_SIZES.map((sz) => {
                   const isSelected = sizes.includes(sz);
                   return (
                     <button
@@ -543,12 +963,12 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                       onClick={() => toggleSize(sz)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
                         isSelected
-                          ? "bg-neutral-900 text-white shadow-xs"
+                          ? "bg-neutral-900 text-white shadow-xs font-bold"
                           : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
                       }`}
                     >
                       {isSelected && <Check className="w-3.5 h-3.5" />}
-                      <span>{sz}</span>
+                      <span>Size {sz}</span>
                     </button>
                   );
                 })}
@@ -560,14 +980,14 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-xs font-bold text-neutral-900">
-                        Stock Quantity Per Size
+                        Stock Quantity Allocated Per Size
                       </h3>
                       <p className="text-[11px] text-neutral-500">
-                        Specify individual inventory count for each available nail size
+                        Adjust individual units for each size variant
                       </p>
                     </div>
                     <div className="text-xs font-bold px-3 py-1 bg-white border border-neutral-200 rounded-xl text-neutral-900 shadow-2xs">
-                      Total: <span className="text-amber-600">{stock}</span> units
+                      Total Stock: <span className="text-amber-600 font-extrabold">{stock}</span> units
                     </div>
                   </div>
 
@@ -579,7 +999,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                       >
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-black px-2 py-0.5 rounded-md bg-neutral-900 text-white">
-                            Size {sz}
+                            {sz}
                           </span>
                           <span className="text-[10px] text-neutral-400 font-medium">units</span>
                         </div>
@@ -624,10 +1044,10 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
           <div className="bg-white p-5 sm:p-6 rounded-2xl border border-neutral-200/80 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-900">
-                Product Images
+                Product Images & Photography
               </h2>
               <span className="text-xs text-neutral-500">
-                Select star icon to set as primary thumbnail
+                Star icon sets primary thumbnail
               </span>
             </div>
 
@@ -650,10 +1070,10 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                   <Upload className="w-6 h-6" />
                 </div>
                 <div className="text-xs font-bold text-neutral-900">
-                  {isUploading ? "Uploading photos..." : "Click to upload product images"}
+                  {isUploading ? "Uploading to Cloudinary..." : "Click to upload product photos"}
                 </div>
                 <div className="text-[11px] text-neutral-400">
-                  PNG, JPG, WebP up to 5MB each
+                  PNG, JPG, WebP (Cloudinary CDN optimized)
                 </div>
               </label>
             </div>
@@ -673,6 +1093,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                       src={img}
                       alt={`Product image ${idx + 1}`}
                       fill
+                      unoptimized
                       className="object-cover"
                       sizes="150px"
                     />
@@ -689,8 +1110,8 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                       <button
                         type="button"
                         onClick={() => setThumbnail(img)}
-                        title="Set as Thumbnail"
-                        className="p-1 bg-black/70 hover:bg-black text-white rounded-md transition-colors"
+                        title="Set as Primary Thumbnail"
+                        className="p-1 bg-black/70 hover:bg-black text-white rounded-md transition-colors cursor-pointer"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
                       </button>
@@ -698,7 +1119,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                         type="button"
                         onClick={() => handleRemoveImage(img)}
                         title="Delete Image"
-                        className="p-1 bg-rose-600/80 hover:bg-rose-600 text-white rounded-md transition-colors"
+                        className="p-1 bg-rose-600/80 hover:bg-rose-600 text-white rounded-md transition-colors cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -710,12 +1131,12 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
           </div>
         </div>
 
-        {/* Right Column: Organization & Badges (1 col) */}
+        {/* Right Column: Organization, Type, Theme, Length (1 col) */}
         <div className="space-y-6">
-          {/* Status & Visibility */}
+          {/* Status & Badges */}
           <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs space-y-4">
             <h2 className="text-sm font-bold uppercase tracking-wider text-neutral-900">
-              Status & Visibility
+              Status & Badges
             </h2>
 
             <div>
@@ -729,7 +1150,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                 }
                 className="w-full px-3 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-semibold text-neutral-800 focus:outline-none focus:border-amber-500 focus:bg-white"
               >
-                <option value="active">Active (Visible in Store)</option>
+                <option value="active">Active (Live in Store)</option>
                 <option value="draft">Draft (Hidden)</option>
                 <option value="archived">Archived</option>
               </select>
@@ -748,7 +1169,7 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                     BEST SELLER
                   </span>
                   <span className="text-[10px] text-neutral-400">
-                    Display in Best Seller filter & tab
+                    Feature in Best Seller section & filter tab
                   </span>
                 </div>
               </label>
@@ -765,19 +1186,38 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                     HANDMADE X-ON NAILS
                   </span>
                   <span className="text-[10px] text-neutral-400">
-                    Display in HANDMADE X-ON NAILS filter & tab
+                    Feature in Handmade Grip-X Nails catalog
                   </span>
                 </div>
               </label>
             </div>
           </div>
 
-          {/* Organization & Attributes */}
-          <div className="bg-white p-5 sm:p-6 rounded-2xl border border-neutral-200/80 shadow-xs space-y-6">
-            {/* Category */}
+          {/* Product Type & Category */}
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs space-y-5">
+            {/* 1. PRODUCT TYPE */}
             <div>
+              <label className="block text-xs font-bold text-neutral-900 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-amber-600" />
+                <span>Product Type</span>
+              </label>
+              <select
+                value={productType}
+                onChange={(e) => setProductType(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-800 focus:outline-none focus:border-neutral-900 shadow-2xs cursor-pointer"
+              >
+                {DEFAULT_PRODUCT_TYPES.map((pt) => (
+                  <option key={pt} value={pt}>
+                    {pt}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. CATEGORY */}
+            <div className="pt-3 border-t border-neutral-100">
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-bold text-neutral-900">
+                <label className="block text-xs font-bold text-neutral-900 uppercase tracking-wider">
                   Category
                 </label>
                 {!isAddingCategory && (
@@ -793,12 +1233,12 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
               </div>
 
               {/* Quick Add Category Form */}
-              {isAddingCategory ? (
-                <div className="mb-3 p-3 bg-amber-50/50 rounded-xl border border-amber-200/80 space-y-2.5">
+              {isAddingCategory && (
+                <div className="mb-3 p-3 bg-amber-50/50 rounded-xl border border-amber-200/80 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
                       <FolderPlus className="w-3.5 h-3.5 text-amber-600" />
-                      New Category Name
+                      New Category
                     </span>
                     <button
                       type="button"
@@ -824,113 +1264,120 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                         }
                       }}
                       placeholder="e.g. Handmade Nails"
-                      className="flex-1 px-3 py-2 bg-white border border-amber-300 rounded-lg text-xs text-neutral-900 focus:outline-none focus:border-amber-600"
+                      className="flex-1 px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs text-neutral-900 focus:outline-none focus:border-amber-600"
                     />
                     <button
                       type="button"
                       disabled={isCreatingCategory || !newCategoryName.trim()}
                       onClick={() => handleCreateCategory()}
-                      className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors flex items-center justify-center cursor-pointer"
+                      className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
                     >
-                      {isCreatingCategory ? (
-                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      ) : (
-                        "Save"
-                      )}
+                      Save
                     </button>
                   </div>
                 </div>
-              ) : null}
+              )}
 
-              <div className="relative">
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 bg-white border border-neutral-200 rounded-2xl text-sm font-medium text-neutral-800 focus:outline-none focus:border-neutral-900 shadow-2xs cursor-pointer appearance-none pr-10"
-                >
-                  {categories.length > 0 ? (
-                    categories.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="Handmade Nails">Handmade Nails</option>
-                      <option value="Handmade Grip-X Nails">Handmade Grip-X Nails</option>
-                      <option value="Ready to Ship">Ready to Ship</option>
-                      <option value="Accessories & Care">Accessories & Care</option>
-                    </>
-                  )}
-                </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-neutral-500">
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </div>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs font-semibold text-neutral-800 focus:outline-none focus:border-neutral-900 shadow-2xs cursor-pointer"
+              >
+                {categories.length > 0 ? (
+                  categories.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="Handmade Nails">Handmade Nails</option>
+                    <option value="Handmade Grip-X Nails">Handmade Grip-X Nails</option>
+                    <option value="Ready to Ship">Ready to Ship</option>
+                    <option value="Accessories & Care">Accessories & Care</option>
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
+
+          {/* DESIGN THEME */}
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-xs font-black uppercase tracking-wider text-neutral-900 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                <span>DESIGN THEME ({designThemes.length})</span>
+              </h3>
             </div>
 
-            {/* DESIGN THEME */}
-            <div className="pt-4 border-t border-neutral-100">
-              <h3 className="text-xs font-black uppercase tracking-wider text-neutral-900 mb-3.5">
-                DESIGN THEME
-              </h3>
-              <div className="space-y-3">
-                {DESIGN_THEME_OPTIONS.map((theme) => {
-                  const isChecked = designThemes.includes(theme);
-                  return (
-                    <label
-                      key={theme}
-                      className="flex items-center gap-3 cursor-pointer text-sm font-medium text-neutral-700 hover:text-neutral-950 transition-colors select-none group"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleDesignTheme(theme)}
-                        className="w-4.5 h-4.5 rounded border-neutral-300 text-neutral-900 focus:ring-0 cursor-pointer"
-                      />
-                      <span className="group-hover:translate-x-0.5 transition-transform">
-                        {theme}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
+            <div className="flex gap-1.5 mb-2">
+              <input
+                type="text"
+                value={customThemeInput}
+                onChange={(e) => setCustomThemeInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddCustomTheme();
+                  }
+                }}
+                placeholder="+ Add Theme"
+                className="flex-1 px-2.5 py-1 bg-neutral-50 border border-neutral-200 rounded-lg text-[11px] text-neutral-900 focus:outline-none focus:border-amber-500"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomTheme}
+                className="px-2.5 py-1 bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 text-[11px] font-bold"
+              >
+                Add
+              </button>
             </div>
 
-            {/* LENGTH */}
-            <div className="pt-4 border-t border-neutral-100">
-              <h3 className="text-xs font-black uppercase tracking-wider text-neutral-900 mb-3.5">
-                LENGTH
-              </h3>
-              <div className="space-y-3">
-                {LENGTH_OPTIONS.map((len) => {
-                  const isSelected = length === len;
-                  return (
-                    <label
-                      key={len}
-                      className="flex items-center gap-3 cursor-pointer text-sm font-medium text-neutral-700 hover:text-neutral-950 transition-colors select-none group"
-                    >
-                      <input
-                        type="radio"
-                        name="product_length"
-                        value={len}
-                        checked={isSelected}
-                        onChange={() => setLength(len)}
-                        className="w-4.5 h-4.5 border-neutral-300 text-neutral-900 focus:ring-0 cursor-pointer"
-                      />
-                      <span className="group-hover:translate-x-0.5 transition-transform">
-                        {len}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
+            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+              {availableThemes.map((theme) => {
+                const isChecked = designThemes.includes(theme);
+                return (
+                  <button
+                    type="button"
+                    key={theme}
+                    onClick={() => toggleDesignTheme(theme)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer ${
+                      isChecked
+                        ? "bg-rose-700 text-white font-bold shadow-2xs"
+                        : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                    }`}
+                  >
+                    {isChecked && <Check className="w-3 h-3" />}
+                    <span>{theme}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* LENGTH */}
+          <div className="bg-white p-5 rounded-2xl border border-neutral-200/80 shadow-xs space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-neutral-900">
+              NAIL LENGTH
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {DEFAULT_LENGTHS.map((len) => {
+                const isSelected = length === len;
+                return (
+                  <button
+                    type="button"
+                    key={len}
+                    onClick={() => setLength(len)}
+                    className={`p-2.5 rounded-xl border text-xs font-bold text-center transition-all cursor-pointer ${
+                      isSelected
+                        ? "border-neutral-900 bg-neutral-900 text-white shadow-xs"
+                        : "border-neutral-200 bg-neutral-50 text-neutral-700 hover:bg-neutral-100"
+                    }`}
+                  >
+                    {len}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

@@ -136,3 +136,65 @@ nextjs-portal,
 #__next-build-watcher {
   display: none !important;
 }
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.material-symbols-outlined.fill-1 {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Rich Text WYSIWYG ContentEditable Styles */
+[contenteditable][data-placeholder]:empty:before,
+[contenteditable][data-placeholder][data-empty="true"]:before {
+  content: attr(data-placeholder);
+  color: #9e8eb3;
+  opacity: 0.6;
+  pointer-events: none;
+  display: inline-block;
+}
+
+[contenteditable] {
+  outline: none;
+}
+
+[contenteditable] ul,
+.article-body ul {
+  list-style-type: disc !important;
+  list-style-position: outside !important;
+  margin-left: 1.75rem !important;
+  padding-left: 0.5rem !important;
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+[contenteditable] ol,
+.article-body ol {
+  list-style-type: decimal !important;
+  list-style-position: outside !important;
+  margin-left: 1.75rem !important;
+  padding-left: 0.5rem !important;
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+}
+
+[contenteditable] li,
+.article-body li {
+  padding-left: 0.25rem !important;
+  margin-bottom: 0.35rem !important;
+  line-height: 1.65 !important;
+}

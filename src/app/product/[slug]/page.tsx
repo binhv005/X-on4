@@ -40,9 +40,9 @@ export default function ProductDetailPage({
     return s === decodedSlug || id === decodedSlug || s === rawSlug.toLowerCase() || id === rawSlug.toLowerCase();
   });
 
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const thumbnailScrollRef = useRef<HTMLDivElement>(null);
-  const [selectedSize, setSelectedSize] = useState<string>("M");
+  const [selectedSize, setSelectedSize] = useState<string>("S");
   const [quantity, setQuantity] = useState<number>(1);
   const [added, setAdded] = useState(false);
   const [stock, setStock] = useState<number>(staticProduct?.stock ?? 20);
@@ -84,14 +84,53 @@ export default function ProductDetailPage({
     notFound();
   }
 
-  const sizes = [
-    { label: "XS", desc: "14 · 10 · 11 · 10 · 7 mm" },
-    { label: "S", desc: "15 · 11 · 12 · 11 · 8 mm" },
-    { label: "M", desc: "16 · 12 · 13 · 12 · 9 mm" },
-    { label: "L", desc: "17 · 13 · 14 · 13 · 10 mm" },
-  ];
+  const DEFAULT_SIZE_INFO: Record<string, { label: string; desc: string }> = {
+    XS: { label: "XS", desc: "14 · 10 · 11 · 10 · 7 mm" },
+    S: { label: "S", desc: "15 · 11 · 12 · 11 · 8 mm" },
+    M: { label: "M", desc: "16 · 12 · 13 · 12 · 9 mm" },
+    L: { label: "L", desc: "17 · 13 · 14 · 13 · 10 mm" },
+    Custom: { label: "Custom", desc: "Custom Sizing" },
+  };
 
   const raw = productDetails || staticProduct;
+
+  interface SizeOption {
+    label: string;
+    desc: string;
+  }
+
+  const sizes: SizeOption[] = React.useMemo(() => {
+    const list: string[] = Array.isArray(raw?.sizes) && raw.sizes.length > 0
+      ? raw.sizes
+      : ["XS", "S", "M", "L", "Custom"];
+    return list.map((sz: string) => ({
+      label: sz,
+      desc: DEFAULT_SIZE_INFO[sz]?.desc || "Standard Size",
+    }));
+  }, [raw?.sizes]);
+
+  // Size-specific stock calculation
+  const getSizeStock = (sizeLabel: string): number => {
+    if (!raw) return 0;
+    if (raw.sizeStock && raw.sizeStock[sizeLabel] !== undefined) {
+      return Math.max(0, parseInt(raw.sizeStock[sizeLabel]) || 0);
+    }
+    return Math.max(0, typeof raw.stock === "number" ? raw.stock : 20);
+  };
+
+  const currentSizeStock = getSizeStock(selectedSize);
+  const itemCartId = `${raw?.id || raw?.slug || rawSlug}-${selectedSize}`;
+  const inCartQty = items.find((i) => i.id === itemCartId || (i.slug === (raw?.slug || rawSlug) && i.size === selectedSize))?.quantity || 0;
+  const remainingAllowed = Math.max(0, currentSizeStock - inCartQty);
+
+  // Auto-clamp quantity if exceeding remaining stock
+  useEffect(() => {
+    if (remainingAllowed > 0 && quantity > remainingAllowed) {
+      setQuantity(remainingAllowed);
+    } else if (remainingAllowed === 0 && quantity !== 1) {
+      setQuantity(1);
+    }
+  }, [selectedSize, remainingAllowed, quantity]);
 
   const scrollThumbnails = (direction: "left" | "right") => {
     if (thumbnailScrollRef.current) {
@@ -137,7 +176,7 @@ export default function ProductDetailPage({
     category: raw.category || "Handmade Grip-X Nails",
     url: `/product/${raw.slug || rawSlug}`,
     description: raw.description || "",
-    stock: stock,
+    stock: currentSizeStock,
   };
 
   const rawImagesList: string[] = Array.isArray(raw.images) && raw.images.length > 0 
@@ -146,8 +185,9 @@ export default function ProductDetailPage({
   const galleryImages: string[] = Array.from(new Set(rawImagesList.filter(Boolean)));
 
   const handleAddToCart = () => {
-    if (stock <= 0) return;
+    if (remainingAllowed <= 0) return;
 
+    const addedQty = Math.min(quantity, remainingAllowed);
     addItem(
       {
         id: `${product.id}-${selectedSize}`,
@@ -156,9 +196,9 @@ export default function ProductDetailPage({
         price: product.price,
         image: product.image,
         size: selectedSize,
-        maxStock: stock,
+        maxStock: currentSizeStock,
       },
-      quantity
+      addedQty
     );
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -332,107 +372,166 @@ export default function ProductDetailPage({
                     {product.originalPrice}
                   </span>
                 )}
-                {stock > 0 ? (
+                {currentSizeStock > 0 ? (
                   <span className="text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                    In Stock ({stock} available)
+                    In Stock ({currentSizeStock} available for Size {selectedSize})
                   </span>
                 ) : (
                   <span className="text-xs font-medium text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-full">
-                    Out of Stock
+                    Size {selectedSize} Out of Stock
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Size Selector */}
-            <div className="space-y-3 pt-2">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-bold uppercase tracking-wider text-gray-900">
-                  Select Size
-                </label>
-                <Link
-                  href="/sizing-chart"
-                  className="text-xs text-rose-600 hover:underline font-medium"
-                >
-                  Size Guide &amp; Measurement
-                </Link>
+              {/* Size Selector with Per-Size Stock Breakdown */}
+              <div className="space-y-3 pt-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-900">
+                    Select Size
+                  </label>
+                  <Link
+                    href="/sizing-chart"
+                    className="text-xs text-rose-600 hover:underline font-medium"
+                  >
+                    Size Guide &amp; Measurement
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                  {sizes.map((s) => {
+                    const szStock = getSizeStock(s.label);
+                    const isSelected = selectedSize === s.label;
+                    const isSoldOut = szStock <= 0;
+
+                    return (
+                      <button
+                        key={s.label}
+                        type="button"
+                        onClick={() => setSelectedSize(s.label)}
+                        className={`py-2.5 px-3 rounded-xl border text-center transition-all cursor-pointer relative ${
+                          isSelected
+                            ? "border-black bg-black text-white shadow-sm ring-1 ring-black"
+                            : isSoldOut
+                            ? "border-gray-200 bg-gray-50/70 text-gray-400 hover:border-gray-300"
+                            : "border-gray-200 bg-white text-gray-800 hover:border-gray-400"
+                        }`}
+                      >
+                        <span className="block font-bold text-sm">{s.label}</span>
+                        <span
+                          className={`block text-[10px] mt-0.5 ${
+                            isSelected ? "text-neutral-300" : "text-neutral-400"
+                          }`}
+                        >
+                          {s.desc}
+                        </span>
+                        <span
+                          className={`block text-[10px] font-bold mt-1 ${
+                            isSoldOut
+                              ? isSelected
+                                ? "text-rose-300"
+                                : "text-rose-500"
+                              : szStock <= 3
+                              ? isSelected
+                                ? "text-amber-300"
+                                : "text-amber-600"
+                              : isSelected
+                              ? "text-emerald-300"
+                              : "text-emerald-600"
+                          }`}
+                        >
+                          {isSoldOut
+                            ? "Sold out"
+                            : szStock <= 3
+                            ? `${szStock} left`
+                            : `${szStock} in stock`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="grid grid-cols-4 gap-2.5">
-                {sizes.map((s) => (
+
+              {/* Quantity Selector & Add to Cart */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-900">
+                    Quantity
+                  </label>
+                  {currentSizeStock > 0 && (
+                    <span className="text-[11px] text-neutral-500">
+                      {inCartQty > 0
+                        ? `${inCartQty} in cart · ${remainingAllowed} more allowed`
+                        : `${remainingAllowed} units allowed max`}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex items-center border border-gray-200 rounded-xl bg-gray-50/50 p-1 w-full sm:w-auto justify-between sm:justify-start">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      disabled={quantity <= 1 || remainingAllowed <= 0}
+                      className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-black hover:bg-white rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="w-12 text-center font-bold text-sm text-gray-900">
+                      {remainingAllowed > 0 ? quantity : 0}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity(Math.min(remainingAllowed, quantity + 1))}
+                      disabled={quantity >= remainingAllowed || remainingAllowed <= 0}
+                      className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-black hover:bg-white rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+
                   <button
-                    key={s.label}
                     type="button"
-                    onClick={() => setSelectedSize(s.label)}
-                    className={`py-2.5 px-3 rounded-xl border text-center transition-all cursor-pointer ${
-                      selectedSize === s.label
-                        ? "border-black bg-black text-white shadow-sm ring-1 ring-black"
-                        : "border-gray-200 bg-white text-gray-800 hover:border-gray-400"
+                    onClick={handleAddToCart}
+                    disabled={remainingAllowed <= 0 || currentSizeStock <= 0}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-300 shadow-md ${
+                      currentSizeStock <= 0 || remainingAllowed <= 0
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none"
+                        : added
+                        ? "bg-emerald-600 text-white"
+                        : "bg-neutral-900 hover:bg-black text-white hover:shadow-lg cursor-pointer"
                     }`}
                   >
-                    <span className="block font-bold text-sm">{s.label}</span>
-                    <span className="block text-[10px] opacity-70 mt-0.5">{s.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Quantity Selector & Add to Cart */}
-            <div className="space-y-3 pt-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-900">
-                Quantity
-              </label>
-              <div className="flex gap-4">
-                <div className="flex items-center border border-gray-200 rounded-xl bg-gray-50/50 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-black hover:bg-white rounded-lg transition-colors cursor-pointer"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-12 text-center font-bold text-sm text-gray-900">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity(Math.min(stock, quantity + 1))}
-                    disabled={quantity >= stock}
-                    className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-black hover:bg-white rounded-lg transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="w-4 h-4" />
+                    {added ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 animate-bounce" />
+                        <span>Added to Bag!</span>
+                      </>
+                    ) : currentSizeStock <= 0 ? (
+                      <span>Size {selectedSize} - Sold Out</span>
+                    ) : remainingAllowed <= 0 ? (
+                      <span>Max In Cart ({currentSizeStock} Total)</span>
+                    ) : (
+                      <>
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>Add to Shopping Bag</span>
+                      </>
+                    )}
                   </button>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  disabled={stock <= 0}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-300 shadow-md ${
-                    stock <= 0
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : added
-                      ? "bg-emerald-600 text-white"
-                      : "bg-neutral-900 hover:bg-black text-white hover:shadow-lg cursor-pointer"
-                  }`}
-                >
-                  {added ? (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 animate-bounce" />
-                      <span>Added to Bag!</span>
-                    </>
-                  ) : stock <= 0 ? (
-                    <span>Sold Out</span>
-                  ) : (
-                    <>
-                      <ShoppingBag className="w-4 h-4" />
-                      <span>Add to Shopping Bag</span>
-                    </>
-                  )}
-                </button>
+                {/* Stock alert messages */}
+                {currentSizeStock <= 0 ? (
+                  <p className="text-[11px] text-rose-600 font-medium">
+                    This size is currently sold out. Please select another size variant.
+                  </p>
+                ) : remainingAllowed <= 0 ? (
+                  <p className="text-[11px] text-amber-600 font-medium">
+                    You have added all available stock ({currentSizeStock} units) for Size {selectedSize} to your shopping bag.
+                  </p>
+                ) : null}
               </div>
-            </div>
 
             {/* Value Props */}
             <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100 text-xs text-gray-700">

@@ -38,7 +38,11 @@ export interface ProductItem {
   shapes: string[];
   sizes: string[];
   designThemes?: string[];
+  colors?: string[];
+  colorOptions?: { name: string; hex: string; border?: boolean }[];
   length?: string;
+  lengths?: string[];
+  productType?: string;
   tags: string[];
   featured: boolean;
   handmadeGripX?: boolean;

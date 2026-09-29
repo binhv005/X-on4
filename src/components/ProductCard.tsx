@@ -14,8 +14,14 @@ export interface Product {
   originalPrice?: string;
   image: string;
   category?: string;
+  shapes?: string[];
   designThemes?: string[];
+  colors?: string[];
+  colorOptions?: { name: string; hex: string; border?: boolean }[];
+  sizes?: string[];
+  sizeStock?: Record<string, number>;
   length?: string;
+  lengths?: string[];
   bestSeller?: boolean;
   handmadeGripX?: boolean;
   featured?: boolean;

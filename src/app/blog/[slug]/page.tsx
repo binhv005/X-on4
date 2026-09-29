@@ -7,6 +7,7 @@ import siteContent from "@/data/site-content.json";
 import { Calendar, ArrowLeft, ArrowRight } from "lucide-react";
 import { parseBlogContentToHtml } from "@/lib/blogParser";
 import { PageDecorations } from "@/components/PageDecorations";
+import ArticleBody from "@/components/blog/ArticleBody";
 
 interface BlogPost {
   id?: string;
@@ -20,6 +21,7 @@ interface BlogPost {
   content?: string;
   excerpt?: string;
   author?: string;
+  tags?: string[];
 }
 
 export default function BlogPostDetailPage({
@@ -154,15 +156,10 @@ export default function BlogPostDetailPage({
           </div>
         )}
 
-        {/* Article Body with support for HTML formatted images and markdown */}
-        <div className="prose prose-neutral max-w-none space-y-6 text-gray-700 text-sm sm:text-base leading-relaxed">
+        {/* Article Body with support for Rich Blocks, Tables, Columns, HTML formatted images and markdown */}
+        <div className="max-w-none space-y-6 text-gray-700 text-sm sm:text-base leading-relaxed">
           {post.content ? (
-            <div
-              className="space-y-4 leading-relaxed [&_h3]:text-xl [&_h3]:font-bold [&_h3]:text-gray-900 [&_h3]:mt-6 [&_h3]:mb-3 [&_p]:my-3 [&_img]:inline-block [&_img]:max-w-full [&_figure]:my-6 [&_blockquote]:border-l-4 [&_blockquote]:border-amber-500 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-neutral-600"
-              dangerouslySetInnerHTML={{
-                __html: parseBlogContentToHtml(post.content),
-              }}
-            />
+            <ArticleBody content={post.content} tags={post.tags} />
           ) : (
             post.paragraphs?.map((para: string, idx: number) => (
               <p key={idx}>{para}</p>

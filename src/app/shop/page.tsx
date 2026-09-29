@@ -40,6 +40,75 @@ export default function ShopPage() {
     loadLiveProducts();
   }, []);
 
+  const DEFAULT_DESIGN_THEMES = [
+    "3D",
+    "Flower",
+    "Y2K",
+    "Cat Eye",
+    "Minimalist",
+    "French Tip",
+    "Glitter",
+    "Chrome",
+    "Gradient",
+    "Cute / Cartoon",
+    "Abstract",
+  ];
+
+  const DEFAULT_SIZES = ["XS", "S", "M", "L", "Custom"];
+
+  const DEFAULT_LENGTHS = ["Short", "Medium", "Long", "Extra Long"];
+
+  const DEFAULT_PRODUCT_TYPES = [
+    { id: "all", name: "ALL TYPES" },
+    { id: "best-seller", name: "BEST SELLER" },
+    { id: "handmade-grip-x-nails", name: "HANDMADE X-ON NAILS" },
+  ];
+
+  // Dynamically extract all available themes across products + default presets
+  const availableThemes = useMemo(() => {
+    const themeSet = new Set<string>(DEFAULT_DESIGN_THEMES);
+    productsList.forEach((p) => {
+      if (Array.isArray(p.designThemes)) {
+        p.designThemes.forEach((t) => {
+          if (t && t.trim()) themeSet.add(t.trim());
+        });
+      }
+    });
+    return Array.from(themeSet);
+  }, [productsList]);
+
+  // Dynamically extract all available sizes across products + default presets
+  const availableSizes = useMemo(() => {
+    const sizeSet = new Set<string>(DEFAULT_SIZES);
+    productsList.forEach((p) => {
+      if (Array.isArray(p.sizes)) {
+        p.sizes.forEach((s) => {
+          if (s && s.trim()) sizeSet.add(s.trim());
+        });
+      }
+      if (p.sizeStock && typeof p.sizeStock === "object") {
+        Object.keys(p.sizeStock).forEach((s) => {
+          if (s && s.trim()) sizeSet.add(s.trim());
+        });
+      }
+    });
+    return Array.from(sizeSet);
+  }, [productsList]);
+
+  // Dynamically extract all available lengths across products + default presets
+  const availableLengths = useMemo(() => {
+    const lengthSet = new Set<string>(DEFAULT_LENGTHS);
+    productsList.forEach((p) => {
+      if (p.length && p.length.trim()) lengthSet.add(p.length.trim());
+      if (Array.isArray(p.lengths)) {
+        p.lengths.forEach((l) => {
+          if (l && l.trim()) lengthSet.add(l.trim());
+        });
+      }
+    });
+    return Array.from(lengthSet);
+  }, [productsList]);
+
   const shapes = [
     { name: "Almond", img: "/images/shape-almond.webp" },
     { name: "Coffin", img: "/images/shape-coffin.webp" },
@@ -49,26 +118,118 @@ export default function ShopPage() {
     { name: "Stiletto", img: "/images/shape-stiletto.webp" },
   ];
 
-  const types = [
-    { id: "all", name: "All Types" },
-    { id: "best-seller", name: "Best seller" },
-    { id: "handmade-grip-x-nails", name: "HANDMADE X-ON NAILS" },
+  const DEFAULT_COLORS = [
+    { name: "Pink", hex: "#f472b6" },
+    { name: "Nude / Beige", hex: "#e2cbaf" },
+    { name: "White", hex: "#ffffff", border: true },
+    { name: "Red / Crimson", hex: "#e11d48" },
+    { name: "Black", hex: "#18181b" },
+    { name: "Blue", hex: "#38bdf8" },
+    { name: "Purple / Lavender", hex: "#c084fc" },
+    { name: "Green / Emerald", hex: "#4ade80" },
+    { name: "Gold / Shimmer", hex: "#eab308" },
+    { name: "Silver / Chrome", hex: "#cbd5e1" },
+    { name: "Pastel", hex: "#fed7aa" },
+    { name: "Multi-color", hex: "linear-gradient(135deg, #f472b6, #38bdf8, #facc15)" },
   ];
 
-  const colors = [
-    { name: "Black", hex: "#000000" },
-    { name: "White", hex: "#ffffff" },
-    { name: "Red", hex: "#b20000" },
-    { name: "Pink", hex: "#f78da7" },
-    { name: "Blue", hex: "#0693e3" },
-    { name: "Baby Blue", hex: "#8ed1fc" },
-    { name: "Gold", hex: "#fcb900" },
-    { name: "Brown", hex: "#7a5230" },
-    { name: "Purple", hex: "#9b51e0" },
-    { name: "Green", hex: "#00d084" },
-    { name: "Nude", hex: "#e8c9b9" },
-    { name: "Silver", hex: "#abb8c3" },
-  ];
+  const getKnownColorHex = (name: string): string => {
+    if (!name) return "#cbd5e1";
+    const trimmed = name.trim();
+    if (trimmed.startsWith("#") || trimmed.startsWith("rgb") || trimmed.startsWith("linear-gradient")) {
+      return trimmed;
+    }
+    const lower = trimmed.toLowerCase();
+    const KNOWN_COLORS: Record<string, string> = {
+      orange: "#f97316",
+      coral: "#fb7185",
+      pink: "#f472b6",
+      "hot pink": "#ec4899",
+      rose: "#f43f5e",
+      nude: "#e2cbaf",
+      beige: "#e2cbaf",
+      white: "#ffffff",
+      red: "#e11d48",
+      crimson: "#e11d48",
+      black: "#18181b",
+      blue: "#38bdf8",
+      "sky blue": "#0ea5e9",
+      navy: "#1e3a8a",
+      purple: "#c084fc",
+      lavender: "#c084fc",
+      violet: "#8b5cf6",
+      green: "#4ade80",
+      emerald: "#10b981",
+      mint: "#6ee7b7",
+      olive: "#84cc16",
+      gold: "#eab308",
+      yellow: "#facc15",
+      amber: "#f59e0b",
+      silver: "#cbd5e1",
+      gray: "#9ca3af",
+      grey: "#9ca3af",
+      charcoal: "#374151",
+      brown: "#78350f",
+      mocha: "#5c3d2e",
+      pastel: "#fed7aa",
+      cyan: "#06b6d4",
+      teal: "#14b8a6",
+      turquoise: "#2dd4bf",
+      magenta: "#d946ef",
+      plum: "#701a75",
+      peach: "#fbcfe8",
+      maroon: "#881337",
+    };
+
+    for (const [key, hex] of Object.entries(KNOWN_COLORS)) {
+      if (lower.includes(key)) {
+        return hex;
+      }
+    }
+
+    return "#e2cbaf";
+  };
+
+  // Dynamically extract all available colors across products + default presets preserving exact dots!
+  const availableColors = useMemo(() => {
+    const colorMap = new Map<string, { name: string; hex: string; border?: boolean }>();
+
+    DEFAULT_COLORS.forEach((c) => {
+      colorMap.set(c.name.toLowerCase(), c);
+    });
+
+    productsList.forEach((p) => {
+      // If product has exact colorOptions with saved hex
+      if (Array.isArray(p.colorOptions)) {
+        p.colorOptions.forEach((co) => {
+          if (!co || !co.name) return;
+          const key = co.name.trim().toLowerCase();
+          if (co.hex) {
+            colorMap.set(key, {
+              name: co.name.trim(),
+              hex: co.hex,
+              border: co.border,
+            });
+          }
+        });
+      }
+      if (Array.isArray(p.colors)) {
+        p.colors.forEach((col) => {
+          if (!col || !col.trim()) return;
+          const colTrimmed = col.trim();
+          const colLower = colTrimmed.toLowerCase();
+          if (!colorMap.has(colLower)) {
+            colorMap.set(colLower, {
+              name: colTrimmed,
+              hex: getKnownColorHex(colTrimmed),
+            });
+          }
+        });
+      }
+    });
+
+    return Array.from(colorMap.values());
+  }, [productsList]);
 
   const filteredProducts = useMemo(() => {
     return productsList
@@ -79,20 +240,24 @@ export default function ShopPage() {
         }
 
         // Shape filter
-        if (selectedShape !== "all" && !p.title.toLowerCase().includes(selectedShape.toLowerCase())) {
-          return false;
+        if (selectedShape !== "all") {
+          const sLower = selectedShape.toLowerCase();
+          const hasShape = p.shapes?.some((s) => s.toLowerCase().includes(sLower));
+          const inTitle = p.title.toLowerCase().includes(sLower);
+          if (!hasShape && !inTitle) return false;
         }
 
         // Type filter
         if (selectedType !== "all") {
-          if (selectedType === "best-seller") {
+          const tLower = selectedType.toLowerCase();
+          if (tLower === "best-seller") {
             const isBestSeller =
               p.bestSeller === true ||
               p.category?.toLowerCase().includes("best") ||
               p.title.toLowerCase().includes("best") ||
               p.slug.toLowerCase().includes("best");
             if (!isBestSeller) return false;
-          } else if (selectedType === "handmade-grip-x-nails") {
+          } else if (tLower === "handmade-grip-x-nails") {
             const isHandmade =
               p.handmadeGripX === true ||
               p.featured === true ||
@@ -102,13 +267,63 @@ export default function ShopPage() {
               p.slug.toLowerCase().includes("handmade");
             if (!isHandmade) return false;
           } else {
-            const tName = selectedType.replace(/-/g, " ");
+            const tName = tLower.replace(/-/g, " ");
             const matches =
-              p.category?.toLowerCase().includes(tName.toLowerCase()) ||
-              p.title.toLowerCase().includes(tName.toLowerCase()) ||
-              p.slug.toLowerCase().includes(selectedType.toLowerCase());
+              p.category?.toLowerCase().includes(tName) ||
+              p.title.toLowerCase().includes(tName) ||
+              p.slug.toLowerCase().includes(tLower);
             if (!matches) return false;
           }
+        }
+
+        // Design Theme Filter
+        if (selectedTheme.length > 0) {
+          const matchesTheme = selectedTheme.some((theme) => {
+            const tLower = theme.toLowerCase();
+            const hasTheme = p.designThemes?.some((dt) => dt.toLowerCase() === tLower);
+            const inTitle = p.title.toLowerCase().includes(tLower);
+            const inCategory = p.category?.toLowerCase().includes(tLower);
+            const inDesc = p.description?.toLowerCase().includes(tLower);
+            return hasTheme || inTitle || inCategory || inDesc;
+          });
+          if (!matchesTheme) return false;
+        }
+
+        // Color filter
+        if (selectedColor) {
+          const cLower = selectedColor.toLowerCase();
+          const searchTerms = cLower.split(/[\/\s,]+/).filter((t) => t.length > 1);
+
+          const hasColor = p.colors?.some((c) => {
+            const pColLower = c.toLowerCase();
+            return pColLower === cLower || searchTerms.some((term) => pColLower.includes(term));
+          });
+          const inTitle = searchTerms.some((term) => p.title.toLowerCase().includes(term));
+          const inCategory = searchTerms.some((term) => p.category?.toLowerCase().includes(term));
+          const inDesc = searchTerms.some((term) => p.description?.toLowerCase().includes(term));
+
+          if (!hasColor && !inTitle && !inCategory && !inDesc) return false;
+        }
+
+        // Size filter
+        if (selectedSize) {
+          const szLower = selectedSize.toLowerCase();
+          const hasSize = p.sizes?.some((s) => s.toLowerCase() === szLower);
+          const stockVal = p.sizeStock
+            ? (p.sizeStock[selectedSize] ?? p.sizeStock[selectedSize.toUpperCase()] ?? 0)
+            : 0;
+          const hasStockInSize = Number(stockVal) > 0;
+          if (!hasSize && !hasStockInSize) return false;
+        }
+
+        // Length filter
+        if (selectedLength) {
+          const lLower = selectedLength.toLowerCase();
+          const hasLen =
+            p.length?.toLowerCase() === lLower ||
+            p.lengths?.some((l) => l.toLowerCase() === lLower);
+          const inTitle = p.title.toLowerCase().includes(lLower);
+          if (!hasLen && !inTitle) return false;
         }
 
         // Price filter
@@ -125,7 +340,18 @@ export default function ShopPage() {
         if (sortBy === "title-asc") return a.title.localeCompare(b.title);
         return 0;
       });
-  }, [productsList, searchQuery, selectedShape, selectedType, maxPrice, sortBy]);
+  }, [
+    productsList,
+    searchQuery,
+    selectedShape,
+    selectedType,
+    selectedTheme,
+    selectedColor,
+    selectedSize,
+    selectedLength,
+    maxPrice,
+    sortBy,
+  ]);
 
   return (
     <div className="relative bg-white min-h-screen py-8 overflow-hidden">
@@ -143,7 +369,7 @@ export default function ShopPage() {
         </div>
 
         {/* 1. TOP SHAPE CATEGORY BAR (Flatsome .shape-category-wrap) */}
-        <div className="flex items-center justify-center gap-3 sm:gap-6 overflow-x-auto pb-4 mb-4 border-b border-gray-100 scrollbar-none">
+        <div className="flex items-center justify-center gap-3 sm:gap-6 overflow-x-auto pb-4 mb-4 border-b border-gray-100 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {shapes.map((s) => (
             <button
               key={s.name}
@@ -179,12 +405,12 @@ export default function ShopPage() {
         </div>
 
         {/* 2. CATEGORY PILL TABS (Flatsome .typenail) */}
-        <div className="flex items-center justify-center gap-2 overflow-x-auto pb-6 mb-8 scrollbar-none">
-          {types.map((t) => (
+        <div className="flex flex-wrap items-center justify-center gap-2 pb-2 mb-8 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {DEFAULT_PRODUCT_TYPES.map((t) => (
             <button
               key={t.id}
               onClick={() => setSelectedType(t.id)}
-              className={`px-4 sm:px-6 py-2 rounded-sm text-xs font-bold uppercase tracking-wider transition-colors ${
+              className={`px-5 py-2.5 rounded-sm text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors cursor-pointer ${
                 selectedType === t.id
                   ? "bg-black text-white"
                   : "bg-neutral-100 text-gray-700 hover:bg-neutral-200"
@@ -239,12 +465,22 @@ export default function ShopPage() {
 
             {/* Design Theme */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-200 pb-2 mb-3">
-                Design theme
-              </h4>
-              <div className="space-y-2 text-xs text-gray-700">
-                {["3D", "Flower", "Y2K"].map((theme) => (
-                  <label key={theme} className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900">
+                  Design theme
+                </h4>
+                {selectedTheme.length > 0 && (
+                  <button
+                    onClick={() => setSelectedTheme([])}
+                    className="text-[10px] text-amber-600 hover:text-amber-700 font-semibold cursor-pointer"
+                  >
+                    Clear ({selectedTheme.length})
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1 text-xs text-gray-700">
+                {availableThemes.map((theme) => (
+                  <label key={theme} className="flex items-center gap-2 cursor-pointer hover:text-black transition-colors">
                     <input
                       type="checkbox"
                       checked={selectedTheme.includes(theme)}
@@ -255,7 +491,7 @@ export default function ShopPage() {
                           setSelectedTheme(selectedTheme.filter((t) => t !== theme));
                         }
                       }}
-                      className="rounded-sm accent-black"
+                      className="rounded-sm accent-black cursor-pointer"
                     />
                     <span>{theme}</span>
                   </label>
@@ -265,35 +501,76 @@ export default function ShopPage() {
 
             {/* Color Swatches */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-200 pb-2 mb-3">
-                Color
-              </h4>
-              <div className="grid grid-cols-6 gap-2">
-                {colors.map((c) => (
+              <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900">
+                  Color {selectedColor && <span className="normal-case text-gray-500 font-normal text-[11px]">({selectedColor})</span>}
+                </h4>
+                {selectedColor && (
                   <button
-                    key={c.name}
-                    onClick={() => setSelectedColor(selectedColor === c.name ? null : c.name)}
-                    title={c.name}
-                    className={`w-6 h-6 rounded-full border border-gray-300 relative transition-transform ${
-                      selectedColor === c.name ? "ring-2 ring-black scale-110" : "hover:scale-105"
-                    }`}
-                    style={{ backgroundColor: c.hex }}
-                  />
-                ))}
+                    onClick={() => setSelectedColor(null)}
+                    className="text-[10px] text-amber-600 hover:text-amber-700 font-semibold cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-6 gap-2.5">
+                {availableColors.map((c) => {
+                  const isSelected = selectedColor === c.name;
+                  return (
+                    <button
+                      key={c.name}
+                      onClick={() => setSelectedColor(isSelected ? null : c.name)}
+                      title={c.name}
+                      className={`w-7 h-7 rounded-full relative transition-all cursor-pointer flex items-center justify-center ${
+                        isSelected
+                          ? "ring-2 ring-black ring-offset-1 scale-110 shadow-xs"
+                          : "hover:scale-105"
+                      }`}
+                      style={{
+                        background: c.hex,
+                        border: c.border ? "1px solid #d4d4d8" : "1px solid rgba(0,0,0,0.08)",
+                      }}
+                    >
+                      {isSelected && (
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            c.name.toLowerCase().includes("white") ||
+                            c.name.toLowerCase().includes("pastel") ||
+                            c.name.toLowerCase().includes("nude") ||
+                            c.name.toLowerCase().includes("silver")
+                              ? "bg-black"
+                              : "bg-white"
+                          }`}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Size Options */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-200 pb-2 mb-3">
-                Size
-              </h4>
-              <div className="flex gap-2">
-                {["S", "M", "L", "XL"].map((sz) => (
+              <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900">
+                  Size {selectedSize && <span className="normal-case text-gray-500 font-normal text-[11px]">({selectedSize})</span>}
+                </h4>
+                {selectedSize && (
+                  <button
+                    onClick={() => setSelectedSize(null)}
+                    className="text-[10px] text-amber-600 hover:text-amber-700 font-semibold cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableSizes.map((sz) => (
                   <button
                     key={sz}
                     onClick={() => setSelectedSize(selectedSize === sz ? null : sz)}
-                    className={`w-8 h-8 rounded-sm border text-xs font-bold uppercase transition-colors ${
+                    className={`min-w-8 h-8 px-2 rounded-sm border text-xs font-bold uppercase transition-colors cursor-pointer flex items-center justify-center ${
                       selectedSize === sz
                         ? "bg-black text-white border-black"
                         : "border-gray-200 text-gray-700 hover:border-black"
@@ -307,18 +584,33 @@ export default function ShopPage() {
 
             {/* Length Filter */}
             <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900 border-b border-gray-200 pb-2 mb-3">
-                Length
-              </h4>
+              <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-900">
+                  Length {selectedLength && <span className="normal-case text-gray-500 font-normal text-[11px]">({selectedLength})</span>}
+                </h4>
+                {selectedLength && (
+                  <button
+                    onClick={() => setSelectedLength(null)}
+                    className="text-[10px] text-amber-600 hover:text-amber-700 font-semibold cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
               <div className="space-y-2 text-xs text-gray-700">
-                {["Short", "Medium", "Long", "Extra Long"].map((len) => (
-                  <label key={len} className="flex items-center gap-2 cursor-pointer">
+                {availableLengths.map((len) => (
+                  <label key={len} className="flex items-center gap-2 cursor-pointer hover:text-black transition-colors">
                     <input
                       type="radio"
                       name="length"
                       checked={selectedLength === len}
+                      onClick={() => {
+                        if (selectedLength === len) {
+                          setSelectedLength(null);
+                        }
+                      }}
                       onChange={() => setSelectedLength(len)}
-                      className="accent-black"
+                      className="accent-black cursor-pointer"
                     />
                     <span>{len}</span>
                   </label>

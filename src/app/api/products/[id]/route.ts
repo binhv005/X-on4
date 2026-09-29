@@ -72,6 +72,51 @@ export async function PUT(
 
   try {
     const body = await req.json();
+
+    if (body.name !== undefined && body.name.trim().length < 3) {
+      return NextResponse.json(
+        { success: false, message: "Product name must be at least 3 characters" },
+        { status: 400 }
+      );
+    }
+
+    if (body.price !== undefined) {
+      const numPrice = Number(body.price);
+      if (isNaN(numPrice) || numPrice <= 0) {
+        return NextResponse.json(
+          { success: false, message: "Price must be a positive number greater than 0" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (body.salePrice !== undefined && body.salePrice !== null && body.salePrice !== "") {
+      const numSale = Number(body.salePrice);
+      const currentPrice = body.price !== undefined ? Number(body.price) : DataStore.getProductById(params.id)?.price || 0;
+      if (isNaN(numSale) || numSale <= 0) {
+        return NextResponse.json(
+          { success: false, message: "Sale price must be a positive number greater than 0" },
+          { status: 400 }
+        );
+      }
+      if (numSale >= currentPrice) {
+        return NextResponse.json(
+          { success: false, message: "Sale price must be strictly lower than regular price" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (body.stock !== undefined) {
+      const numStock = Number(body.stock);
+      if (isNaN(numStock) || numStock < 0) {
+        return NextResponse.json(
+          { success: false, message: "Stock cannot be a negative number" },
+          { status: 400 }
+        );
+      }
+    }
+
     const updated = DataStore.updateProduct(params.id, body);
     if (!updated) {
       return NextResponse.json(
@@ -96,6 +141,29 @@ export async function DELETE(
   const params = await props.params;
   const { errorResponse } = await requireAuth(req);
   if (errorResponse) return errorResponse;
+
+  // Check if product is tied to any active/processing orders
+  const orders = DataStore.getOrders({ limit: 500 }).orders;
+  const hasActiveOrder = orders.some(
+    (o) =>
+      o.orderStatus !== "delivered" &&
+      o.orderStatus !== "cancelled" &&
+      o.items?.some(
+        (i) =>
+          i.productId === params.id ||
+          i.productId?.startsWith(`${params.id}-`)
+      )
+  );
+
+  if (hasActiveOrder) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Cannot delete this product because it is currently part of an active unfulfilled order.",
+      },
+      { status: 400 }
+    );
+  }
 
   const success = DataStore.deleteProduct(params.id);
   if (!success) {
