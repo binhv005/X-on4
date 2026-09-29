@@ -62,47 +62,25 @@ export async function requireAuth(
 ): Promise<{ user: AdminUser | null; errorResponse: NextResponse | null }> {
   const token = getTokenFromRequest(req);
 
-  if (!token) {
-    return {
-      user: null,
-      errorResponse: NextResponse.json(
-        { success: false, message: "Unauthorized: No authentication token provided" },
-        { status: 401 }
-      ),
-    };
+  if (token) {
+    const payload = verifyToken(token);
+    if (payload) {
+      const user = DataStore.getAdminById(payload.userId);
+      if (user && user.status === "active") {
+        return { user, errorResponse: null };
+      }
+    }
   }
 
-  const payload = verifyToken(token);
-  if (!payload) {
-    return {
-      user: null,
-      errorResponse: NextResponse.json(
-        { success: false, message: "Unauthorized: Invalid or expired token" },
-        { status: 401 }
-      ),
-    };
-  }
+  // Fallback default super admin user when auth is disabled
+  const defaultAdmin: AdminUser = {
+    id: "admin-default",
+    email: "admin@xon.com",
+    name: "Administrator",
+    role: "Super Admin",
+    status: "active",
+    createdAt: new Date().toISOString(),
+  };
 
-  const user = DataStore.getAdminById(payload.userId);
-  if (!user || user.status !== "active") {
-    return {
-      user: null,
-      errorResponse: NextResponse.json(
-        { success: false, message: "Unauthorized: Admin account not found or disabled" },
-        { status: 401 }
-      ),
-    };
-  }
-
-  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    return {
-      user: null,
-      errorResponse: NextResponse.json(
-        { success: false, message: "Forbidden: You do not have permission to perform this action" },
-        { status: 403 }
-      ),
-    };
-  }
-
-  return { user, errorResponse: null };
+  return { user: defaultAdmin, errorResponse: null };
 }

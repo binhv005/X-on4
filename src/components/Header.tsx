@@ -9,7 +9,6 @@ import {
   Menu,
   ShoppingBag,
   Search,
-  User,
   Heart,
   ChevronDown,
 } from "lucide-react";
@@ -60,16 +59,6 @@ export function Header() {
 
   const renderActions = (showSubtotal = true) => (
     <div className="flex items-center space-x-2 sm:space-x-4 text-gray-800">
-      {/* Avatar / User icon -> navigates to Admin / Account Login */}
-      <Link
-        href="/admin/login"
-        className="p-1.5 hover:text-rose-700 transition-colors"
-        title="Sign In / Account"
-        aria-label="Sign In / Account"
-      >
-        <User className="w-5 h-5 stroke-[1.5]" />
-      </Link>
-
       <Link
         href="/shop"
         onClick={handleLinkClick}
@@ -651,15 +640,6 @@ export function Header() {
                 }`}
               >
                 CONTACT
-              </Link>
-
-              {/* LOGIN */}
-              <Link
-                href="/admin/login"
-                onClick={handleDrawerLinkClick}
-                className="block py-3.5 px-6 text-[13px] font-bold uppercase tracking-wider text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors"
-              >
-                LOGIN
               </Link>
 
               {/* WISHLIST HEART ICON */}
