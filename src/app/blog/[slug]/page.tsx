@@ -139,7 +139,7 @@ export default function BlogPostDetailPage({
         {(post.thumbnail || post.image) && (
           <div className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-lg border border-gray-100 bg-neutral-100">
             <Image
-              src={post.thumbnail || post.image || "/images/logo-xon.png"}
+              src={post.thumbnail || post.image || "/images/logo-xon.webp"}
               alt={post.title}
               fill
               priority
@@ -148,7 +148,7 @@ export default function BlogPostDetailPage({
               className="object-cover"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src = "/images/logo-xon.png";
+                target.src = "/images/logo-xon.webp";
               }}
             />
           </div>

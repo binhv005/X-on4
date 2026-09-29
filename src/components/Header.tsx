@@ -149,7 +149,7 @@ export function Header() {
                     onClick={handleLinkClick}
                     className="hover:text-rose-700 transition-colors block py-0.5"
                   >
-                    Handmade grip-x nails
+                    HANDMADE X-ON NAILS
                   </Link>
                 </li>
                 <li>
@@ -232,7 +232,7 @@ export function Header() {
                 className="group/card block relative aspect-3/4 rounded-lg overflow-hidden bg-neutral-100"
               >
                 <Image
-                  src="/images/IMG_7098.JPG"
+                  src="/images/IMG_7098.webp"
                   alt="Bundles"
                   fill
                   sizes="250px"
@@ -254,7 +254,7 @@ export function Header() {
                 className="group/card block relative aspect-3/4 rounded-lg overflow-hidden bg-neutral-100"
               >
                 <Image
-                  src="/images/IMG_7101.JPG"
+                  src="/images/IMG_7101.webp"
                   alt="Y2K"
                   fill
                   sizes="250px"
@@ -276,7 +276,7 @@ export function Header() {
                 className="group/card block relative aspect-3/4 rounded-lg overflow-hidden bg-neutral-100"
               >
                 <Image
-                  src="/images/IMG_7105.JPG"
+                  src="/images/IMG_7105.webp"
                   alt="Best seller"
                   fill
                   sizes="250px"
@@ -378,7 +378,7 @@ export function Header() {
                 className="relative block pointer-events-auto transition-transform duration-200 hover:scale-105 h-[calc(44px-(10px*var(--p)))] sm:h-[calc(76px-(32px*var(--p)))] md:h-[calc(110px-(60px*var(--p)))] lg:h-[calc(146px-(96px*var(--p)))] w-[calc(120px-(28px*var(--p)))] sm:w-[calc(220px-(90px*var(--p)))] md:w-[calc(340px-(180px*var(--p)))] lg:w-[calc(460px-(300px*var(--p)))]"
               >
                 <Image
-                  src="/images/logo-xon.png"
+                  src="/images/logo-xon.webp"
                   alt="X-ON Nails"
                   fill
                   priority

@@ -12,15 +12,15 @@ import { Star } from "lucide-react";
 const heroVideos = [
   {
     src: "/videos/1K34PRO8E_DMCL0D.mp4",
-    poster: "/images/IMG_7101.JPG",
+    poster: "/images/IMG_7101.webp",
   },
   {
     src: "/videos/1K34PRO84_DMCL0D.mp4",
-    poster: "/images/IMG_7098.JPG",
+    poster: "/images/IMG_7098.webp",
   },
   {
     src: "/videos/1K34PRO8K_DMCL0D.mp4",
-    poster: "/images/IMG_7099.JPG",
+    poster: "/images/IMG_7099.webp",
   },
 ];
 
@@ -134,7 +134,7 @@ export default function HomePage() {
               controls={false}
               disablePictureInPicture
               disableRemotePlayback
-              poster="/images/IMG_7098.JPG"
+              poster="/images/IMG_7098.webp"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
             >
               <source src="/videos/1K34PRO84_DMCL0D.mp4" type="video/mp4" />
@@ -151,7 +151,7 @@ export default function HomePage() {
               controls={false}
               disablePictureInPicture
               disableRemotePlayback
-              poster="/images/IMG_7099.JPG"
+              poster="/images/IMG_7099.webp"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
             >
               <source src="/videos/1K34PRO8K_DMCL0D.mp4" type="video/mp4" />
@@ -168,7 +168,7 @@ export default function HomePage() {
               controls={false}
               disablePictureInPicture
               disableRemotePlayback
-              poster="/images/IMG_7100.JPG"
+              poster="/images/IMG_7100.webp"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
             >
               <source src="/videos/1K34PRO8E_DMCL0D.mp4" type="video/mp4" />
@@ -182,7 +182,7 @@ export default function HomePage() {
         {/* Background Decorative Motifs */}
         <div className="absolute -top-10 -left-10 w-48 h-48 sm:w-64 sm:h-64 opacity-30 pointer-events-none select-none rotate-[-15deg]">
           <Image
-            src="/images/decorations/rose-bloom.png"
+            src="/images/decorations/rose-bloom.webp"
             alt=""
             fill
             sizes="256px"
@@ -191,7 +191,7 @@ export default function HomePage() {
         </div>
         <div className="absolute top-1/4 -right-10 w-56 h-56 sm:w-72 sm:h-72 opacity-30 pointer-events-none select-none rotate-12">
           <Image
-            src="/images/decorations/daisy-cluster.png"
+            src="/images/decorations/daisy-cluster.webp"
             alt=""
             fill
             sizes="288px"
@@ -200,7 +200,7 @@ export default function HomePage() {
         </div>
         <div className="absolute -bottom-8 -left-6 w-36 h-36 sm:w-48 sm:h-48 opacity-25 pointer-events-none select-none rotate-[-20deg]">
           <Image
-            src="/images/decorations/gold-scissors.png"
+            src="/images/decorations/gold-scissors.webp"
             alt=""
             fill
             sizes="192px"
@@ -209,7 +209,7 @@ export default function HomePage() {
         </div>
         <div className="absolute -bottom-10 right-4 sm:right-10 w-36 h-44 sm:w-48 sm:h-56 opacity-25 pointer-events-none select-none rotate-15">
           <Image
-            src="/images/decorations/polish-bottle.png"
+            src="/images/decorations/polish-bottle.webp"
             alt=""
             fill
             sizes="192px"
@@ -271,7 +271,7 @@ export default function HomePage() {
           controls={false}
           disablePictureInPicture
           disableRemotePlayback
-          poster="/images/IMG_7098.JPG"
+          poster="/images/IMG_7098.webp"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
         >
           <source src="/videos/1K34PRO84_DMCL0D.mp4" type="video/mp4" />
@@ -283,7 +283,7 @@ export default function HomePage() {
         {/* Background Decorative Motifs */}
         <div className="absolute top-8 -left-8 w-52 h-52 sm:w-68 sm:h-68 opacity-25 pointer-events-none select-none rotate-12">
           <Image
-            src="/images/decorations/petals-scatter.png"
+            src="/images/decorations/petals-scatter.webp"
             alt=""
             fill
             sizes="272px"
@@ -292,7 +292,7 @@ export default function HomePage() {
         </div>
         <div className="absolute top-1/4 right-2 sm:right-8 w-36 h-48 sm:w-48 sm:h-64 opacity-25 pointer-events-none select-none rotate-[35deg]">
           <Image
-            src="/images/decorations/pink-brush.png"
+            src="/images/decorations/pink-brush.webp"
             alt=""
             fill
             sizes="256px"
@@ -301,7 +301,7 @@ export default function HomePage() {
         </div>
         <div className="absolute -bottom-8 -left-6 w-48 h-48 sm:w-60 sm:h-60 opacity-25 pointer-events-none select-none rotate-[-10deg]">
           <Image
-            src="/images/decorations/daisy-rose-sprig.png"
+            src="/images/decorations/daisy-rose-sprig.webp"
             alt=""
             fill
             sizes="240px"
@@ -310,7 +310,7 @@ export default function HomePage() {
         </div>
         <div className="absolute -bottom-8 -right-8 w-44 h-44 sm:w-56 sm:h-56 opacity-25 pointer-events-none select-none rotate-[-15deg]">
           <Image
-            src="/images/decorations/gold-stars.png"
+            src="/images/decorations/gold-stars.webp"
             alt=""
             fill
             sizes="224px"
@@ -375,7 +375,7 @@ export default function HomePage() {
           controls={false}
           disablePictureInPicture
           disableRemotePlayback
-          poster="/images/IMG_7099.JPG"
+          poster="/images/IMG_7099.webp"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
         >
           <source src="/videos/1K34PRO8K_DMCL0D.mp4" type="video/mp4" />
@@ -387,7 +387,7 @@ export default function HomePage() {
         {/* Background Decorative Motifs */}
         <div className="absolute -top-10 -right-10 w-52 h-52 sm:w-68 sm:h-68 opacity-25 pointer-events-none select-none rotate-20">
           <Image
-            src="/images/decorations/rose-bloom.png"
+            src="/images/decorations/rose-bloom.webp"
             alt=""
             fill
             sizes="272px"
@@ -396,7 +396,7 @@ export default function HomePage() {
         </div>
         <div className="absolute top-1/3 -left-8 w-44 h-44 sm:w-56 sm:h-56 opacity-25 pointer-events-none select-none rotate-[-15deg]">
           <Image
-            src="/images/decorations/chamomile-sprig.png"
+            src="/images/decorations/chamomile-sprig.webp"
             alt=""
             fill
             sizes="224px"
@@ -405,7 +405,7 @@ export default function HomePage() {
         </div>
         <div className="absolute -bottom-8 -right-8 w-36 h-36 sm:w-48 sm:h-48 opacity-20 pointer-events-none select-none rotate-[-25deg]">
           <Image
-            src="/images/decorations/gold-scissors.png"
+            src="/images/decorations/gold-scissors.webp"
             alt=""
             fill
             sizes="192px"
@@ -414,7 +414,7 @@ export default function HomePage() {
         </div>
         <div className="absolute -bottom-8 left-10 w-52 h-52 sm:w-68 sm:h-68 opacity-25 pointer-events-none select-none -rotate-12">
           <Image
-            src="/images/decorations/petals-scatter.png"
+            src="/images/decorations/petals-scatter.webp"
             alt=""
             fill
             sizes="272px"
@@ -474,7 +474,7 @@ export default function HomePage() {
           controls={false}
           disablePictureInPicture
           disableRemotePlayback
-          poster="/images/IMG_7100.JPG"
+          poster="/images/IMG_7100.webp"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
         >
           <source src="/videos/1K34PRO8E_DMCL0D.mp4" type="video/mp4" />
@@ -487,7 +487,7 @@ export default function HomePage() {
           {/* Left 50%: Image with smooth seamless fade on the right edge */}
           <div className="relative w-full h-[360px] sm:h-[460px] md:h-full min-h-[360px] md:min-h-full overflow-hidden">
             <Image
-              src="/images/shop-irl-bg.png"
+              src="/images/shop-irl-bg.webp"
               alt="Shop US IRL"
               fill
               priority

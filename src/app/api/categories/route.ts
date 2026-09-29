@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       name,
       slug: autoSlug,
       description: description || "",
-      image: image || "/images/IMG_7098.JPG",
+      image: image || "/images/IMG_7098.webp",
       status: status || "active",
       displayOrder: Number(displayOrder || 0),
     });

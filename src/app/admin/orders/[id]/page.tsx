@@ -170,7 +170,7 @@ export default function AdminOrderDetailPage() {
                 <div key={idx} className="py-3.5 flex items-center gap-4">
                   <div className="relative w-14 h-14 rounded-xl bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
                     <Image
-                      src={item.productImage || "/images/IMG_7098.JPG"}
+                      src={item.productImage || "/images/IMG_7098.webp"}
                       alt={item.productName}
                       fill
                       className="object-cover"

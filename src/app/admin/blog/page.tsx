@@ -158,7 +158,7 @@ export default function AdminBlogPage() {
                       <div className="flex items-center gap-3">
                         <div className="relative w-14 h-10 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
                           <Image
-                            src={b.thumbnail || "/images/IMG_7098.JPG"}
+                            src={b.thumbnail || "/images/IMG_7098.webp"}
                             alt={b.title}
                             fill
                             className="object-cover"

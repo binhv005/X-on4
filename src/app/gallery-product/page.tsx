@@ -34,7 +34,7 @@ export default function GalleryProductPage() {
       {/* Top Full-width Banner with Top-Left Luxury Overlay Text */}
       <div className="relative w-full overflow-hidden bg-[#f7f3ee] min-h-[420px] sm:min-h-[480px] md:min-h-[520px] lg:min-h-[560px] flex items-center">
         <Image
-          src="/images/xon_gallery_banner.jpg"
+          src="/images/xon_gallery_banner.webp"
           alt="X-ON Handcrafted Nail Art Gallery"
           fill
           priority

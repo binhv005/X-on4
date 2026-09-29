@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       slug: autoSlug,
       excerpt: body.excerpt || "",
       content,
-      thumbnail: body.thumbnail || "/images/IMG_7098.JPG",
+      thumbnail: body.thumbnail || "/images/IMG_7098.webp",
       author: body.author || "X-ON Team",
       category: body.category || "Nail Trends",
       tags: body.tags || [],

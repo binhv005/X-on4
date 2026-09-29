@@ -11,25 +11,25 @@ const defaultBlogPosts = [
     title: "EXTRA-LONG HANDMADE NAIL LUXURY",
     slug: "extra-long-handmade-nail-luxury",
     date: "July 22, 2026",
-    image: "/images/IMG_7098.JPG",
+    image: "/images/IMG_7098.webp",
   },
   {
     title: "SALON-QUALITY HANDMADE NAILS, REIMAGINED FOR HOME",
     slug: "salon-quality-handmade-nails-reimagined-for-home",
     date: "July 22, 2026",
-    image: "/images/IMG_7099.JPG",
+    image: "/images/IMG_7099.webp",
   },
   {
     title: "How to Have Beautiful Nails in Less Than 10 Minutes",
     slug: "apply-gripx-nails",
     date: "December 10, 2025",
-    image: "/images/IMG_7100.JPG",
+    image: "/images/IMG_7100.webp",
   },
   {
     title: "Salon-Quality Beauty, Reimagined for Modern Life",
     slug: "post-1",
     date: "December 10, 2025",
-    image: "/images/IMG_7101.JPG",
+    image: "/images/IMG_7101.webp",
   },
 ];
 
@@ -53,7 +53,7 @@ export default function BlogIndexPage() {
                     year: "numeric",
                   })
                 : "Recent",
-              image: b.thumbnail || "/images/IMG_7098.JPG",
+              image: b.thumbnail || "/images/IMG_7098.webp",
             }));
 
             // Merge dynamic posts on top without duplicating existing slugs
@@ -80,7 +80,7 @@ export default function BlogIndexPage() {
       {/* Top Full-width Banner */}
       <div className="w-full overflow-hidden bg-neutral-900 relative z-10">
         <Image
-          src="/images/xon_blog_banner.jpg"
+          src="/images/xon_blog_banner.webp"
           alt="X-ON News & Blog Banner"
           width={1376}
           height={768}

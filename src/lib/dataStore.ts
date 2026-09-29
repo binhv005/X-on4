@@ -85,7 +85,7 @@ function initMemoryStore(): MemoryStore {
       name: "Handmade Nails",
       slug: "handmade-nails",
       description: "Handcrafted artisan press-on nails with multi-layer gel coating.",
-      image: "/images/IMG_7098.JPG",
+      image: "/images/IMG_7098.webp",
       status: "active",
       displayOrder: 1,
       createdAt: new Date().toISOString(),
@@ -95,7 +95,7 @@ function initMemoryStore(): MemoryStore {
       name: "Best Sellers",
       slug: "best-sellers",
       description: "Most popular nail designs chosen by thousands of beauty lovers.",
-      image: "/images/IMG_7099.JPG",
+      image: "/images/IMG_7099.webp",
       status: "active",
       displayOrder: 2,
       createdAt: new Date().toISOString(),
@@ -105,7 +105,7 @@ function initMemoryStore(): MemoryStore {
       name: "Almond Shape",
       slug: "almond",
       description: "Feminine, elongating almond shape nail styles.",
-      image: "/images/IMG_7100.JPG",
+      image: "/images/IMG_7100.webp",
       status: "active",
       displayOrder: 3,
       createdAt: new Date().toISOString(),
@@ -115,7 +115,7 @@ function initMemoryStore(): MemoryStore {
       name: "Coffin Shape",
       slug: "coffin",
       description: "Trendy coffin shape press-ons with sleek tapered edges.",
-      image: "/images/IMG_7101.JPG",
+      image: "/images/IMG_7101.webp",
       status: "active",
       displayOrder: 4,
       createdAt: new Date().toISOString(),
@@ -125,7 +125,7 @@ function initMemoryStore(): MemoryStore {
       name: "Bundles & Sets",
       slug: "bundle-and-save",
       description: "Save big with multi-pack press on nail bundles.",
-      image: "/images/IMG_7102.JPG",
+      image: "/images/IMG_7102.webp",
       status: "active",
       displayOrder: 5,
       createdAt: new Date().toISOString(),
@@ -215,7 +215,7 @@ function initMemoryStore(): MemoryStore {
         {
           productId: "xo-7098",
           productName: "X-ON Handmade Press-On Nails #7098",
-          productImage: "/images/IMG_7098.JPG",
+          productImage: "/images/IMG_7098.webp",
           size: "M",
           quantity: 2,
           price: 19.99,
@@ -253,7 +253,7 @@ function initMemoryStore(): MemoryStore {
         {
           productId: "xo-7100",
           productName: "X-ON Handmade Press-On Nails #7100",
-          productImage: "/images/IMG_7100.JPG",
+          productImage: "/images/IMG_7100.webp",
           size: "S",
           quantity: 1,
           price: 19.99,
@@ -262,7 +262,7 @@ function initMemoryStore(): MemoryStore {
         {
           productId: "xo-7101",
           productName: "X-ON Handmade Press-On Nails #7101",
-          productImage: "/images/IMG_7101.JPG",
+          productImage: "/images/IMG_7101.webp",
           size: "S",
           quantity: 1,
           price: 24.99,
@@ -299,7 +299,7 @@ function initMemoryStore(): MemoryStore {
         {
           productId: "xo-7102",
           productName: "X-ON Handmade Press-On Nails #7102",
-          productImage: "/images/IMG_7102.JPG",
+          productImage: "/images/IMG_7102.webp",
           size: "M",
           quantity: 1,
           price: 24.99,
@@ -330,7 +330,7 @@ function initMemoryStore(): MemoryStore {
         review: r.text || "Absolutely loved these nails! Perfect fit and stayed on for 3 weeks.",
         productTitle: "X-ON Handmade Press-On Nails #7098",
         productId: "xo-7098",
-        images: r.avatar ? [r.avatar] : ["/images/IMG_7098.JPG"],
+        images: r.avatar ? [r.avatar] : ["/images/IMG_7098.webp"],
         date: new Date(Date.now() - i * 3 * 86400000).toLocaleDateString("en-US"),
         status: "approved",
         createdAt: new Date(Date.now() - i * 3 * 86400000).toISOString(),
@@ -343,7 +343,7 @@ function initMemoryStore(): MemoryStore {
           review: "The Cold Gel tech is unreal! These look like a $120 salon set and took 5 mins to apply.",
           productTitle: "X-ON Handmade Press-On Nails #7098",
           productId: "xo-7098",
-          images: ["/images/IMG_7098.JPG"],
+          images: ["/images/IMG_7098.webp"],
           date: "Sep 20, 2026",
           status: "approved",
           createdAt: new Date().toISOString(),
@@ -367,7 +367,7 @@ function initMemoryStore(): MemoryStore {
     : [
         {
           id: "gal-1",
-          image: "/images/IMG_7098.JPG",
+          image: "/images/IMG_7098.webp",
           title: "Golden Hour Shimmer",
           description: "Stunning gel finish under natural light.",
           product: "XO-7098",
@@ -378,7 +378,7 @@ function initMemoryStore(): MemoryStore {
         },
         {
           id: "gal-2",
-          image: "/images/IMG_7099.JPG",
+          image: "/images/IMG_7099.webp",
           title: "Midnight Velvet Noir",
           description: "Moody velvet cat-eye design.",
           product: "XO-7099",
@@ -393,7 +393,7 @@ function initMemoryStore(): MemoryStore {
     {
       id: "cs-1",
       productName: "Aurora Chrome Holographic Edition",
-      image: "/images/IMG_7104.JPG",
+      image: "/images/IMG_7104.webp",
       description: "Prismatic color-shifting chrome press-on set launching next month.",
       expectedReleaseDate: "2026-10-15",
       status: "Coming Soon",
@@ -403,7 +403,7 @@ function initMemoryStore(): MemoryStore {
     {
       id: "cs-2",
       productName: "Bridal Opal & Pearl Gemstones",
-      image: "/images/IMG_7105.JPG",
+      image: "/images/IMG_7105.webp",
       description: "Delicate handcrafted bridal collection with genuine crystal charms.",
       expectedReleaseDate: "2026-11-01",
       status: "Coming Soon",
@@ -451,7 +451,7 @@ function initMemoryStore(): MemoryStore {
       excerpt: "Step-by-step masterclass on cuticle prep, dehydration, and Cold Gel bonding.",
       content:
         "Press-on nails have evolved dramatically from the flimsy plastic glue-ons of the past. With X-ON's handcrafted acrylic-grade press-ons and Cold Gel adhesive tabs, you can easily achieve salon-grade longevity...\n\n### Step 1: Prep is 90% of the Bond\nAlways gently push back cuticles and lightly buff the shine off your natural nail beds before wiping clean with an alcohol wipe.\n\n### Step 2: Choose the Exact Size\nNever force a size that is too wide or too narrow. If between sizes, size down or gently file the sidewalls.",
-      thumbnail: "/images/IMG_7101.JPG",
+      thumbnail: "/images/IMG_7101.webp",
       author: "Mia Nguyen (Master Nail Artist)",
       category: "Nail Care & Tutorials",
       tags: ["tutorials", "press-on tips", "nail care", "diy nail art"],
@@ -469,7 +469,7 @@ function initMemoryStore(): MemoryStore {
       excerpt: "Explore the newest runway nail aesthetics taking over social feeds this season.",
       content:
         "From ethereal shimmer to minimalist micro french lines, here are the top nail art designs everyone is requesting in 2026.",
-      thumbnail: "/images/IMG_7099.JPG",
+      thumbnail: "/images/IMG_7099.webp",
       author: "X-ON Creative Team",
       category: "Trend Reports",
       tags: ["trends", "velvet nails", "french tip"],
@@ -529,7 +529,7 @@ function initMemoryStore(): MemoryStore {
   const initialSettings: SiteSettings = {
     general: {
       websiteName: "X-ON Nail Shop",
-      logo: "/images/IMG_7098.JPG",
+      logo: "/images/IMG_7098.webp",
       favicon: "/favicon.ico",
       contactEmail: "support@xonails.com",
       phone: "+1 (689) 212-8888",
@@ -555,7 +555,7 @@ function initMemoryStore(): MemoryStore {
       metaTitle: "X-ON — Press On. Slay On. Repeat. | Handmade Press-on Nails",
       metaDescription:
         "Handmade luxury press-on nails and essentials designed with quality, style, and performance in mind.",
-      ogImage: "/images/IMG_7101.JPG",
+      ogImage: "/images/IMG_7101.webp",
     },
   };
 

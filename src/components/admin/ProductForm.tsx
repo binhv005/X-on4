@@ -109,10 +109,10 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
   );
 
   const [images, setImages] = useState<string[]>(
-    initialData?.images || ["/images/IMG_7098.JPG"]
+    initialData?.images || ["/images/IMG_7098.webp"]
   );
   const [thumbnail, setThumbnail] = useState(
-    initialData?.thumbnail || initialData?.images?.[0] || "/images/IMG_7098.JPG"
+    initialData?.thumbnail || initialData?.images?.[0] || "/images/IMG_7098.webp"
   );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -312,8 +312,8 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
         handmadeGripX: handmadeGripX,
         bestSeller,
         status,
-        images: images.length > 0 ? images : ["/images/IMG_7098.JPG"],
-        thumbnail: thumbnail || images[0] || "/images/IMG_7098.JPG",
+        images: images.length > 0 ? images : ["/images/IMG_7098.webp"],
+        thumbnail: thumbnail || images[0] || "/images/IMG_7098.webp",
       };
 
       const url = isEdit && initialData ? `/api/products/${initialData.id}` : "/api/products";
@@ -762,10 +762,10 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
                 />
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-neutral-900 block group-hover:text-black transition-colors">
-                    HANDMADE GRIP-X NAILS
+                    HANDMADE X-ON NAILS
                   </span>
                   <span className="text-[10px] text-neutral-400">
-                    Display in Handmade Grip-X Nails filter & tab
+                    Display in HANDMADE X-ON NAILS filter & tab
                   </span>
                 </div>
               </label>

@@ -46,7 +46,7 @@ export function Footer() {
             >
               <div className="relative h-28 sm:h-32 md:h-36 w-[300px] sm:w-[360px] md:w-[390px] max-w-full">
                 <Image
-                  src="/images/logo-xon.png"
+                  src="/images/logo-xon.webp"
                   alt="X-ON"
                   fill
                   unoptimized

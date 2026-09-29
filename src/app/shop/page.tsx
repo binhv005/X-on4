@@ -41,18 +41,18 @@ export default function ShopPage() {
   }, []);
 
   const shapes = [
-    { name: "Almond", img: "/images/ChatGPT-Image-14_53_06-6-thg-7-2026.png" },
-    { name: "Coffin", img: "/images/ChatGPT-Image-15_02_06-6-thg-7-2026.png" },
-    { name: "Oval", img: "/images/ChatGPT-Image-14_47_28-6-thg-7-2026.png" },
-    { name: "Round", img: "/images/ChatGPT-Image-14_57_49-6-thg-7-2026.png" },
-    { name: "Square", img: "/images/ChatGPT-Image-14_44_08-6-thg-7-2026.png" },
-    { name: "Stiletto", img: "/images/1b230f22-4354-4e6e-b2e0-cdfae0aea0c0-Photoroom.png" },
+    { name: "Almond", img: "/images/shape-almond.webp" },
+    { name: "Coffin", img: "/images/shape-coffin.webp" },
+    { name: "Oval", img: "/images/shape-oval.webp" },
+    { name: "Round", img: "/images/shape-round.webp" },
+    { name: "Square", img: "/images/shape-square.webp" },
+    { name: "Stiletto", img: "/images/shape-stiletto.webp" },
   ];
 
   const types = [
     { id: "all", name: "All Types" },
     { id: "best-seller", name: "Best seller" },
-    { id: "handmade-grip-x-nails", name: "Handmade grip-x nails" },
+    { id: "handmade-grip-x-nails", name: "HANDMADE X-ON NAILS" },
   ];
 
   const colors = [
@@ -153,10 +153,10 @@ export default function ShopPage() {
               }`}
             >
               <div
-                className={`relative w-16 h-20 sm:w-20 sm:h-24 rounded-lg overflow-hidden flex items-center justify-center p-1 transition-all ${
+                className={`relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden flex items-center justify-center p-1.5 transition-all ${
                   selectedShape === s.name
-                    ? "ring-2 ring-black bg-neutral-50"
-                    : "border border-transparent hover:border-gray-200"
+                    ? "ring-2 ring-black bg-neutral-50 shadow-xs"
+                    : "border border-transparent hover:border-gray-200 bg-neutral-50/50"
                 }`}
               >
                 <Image

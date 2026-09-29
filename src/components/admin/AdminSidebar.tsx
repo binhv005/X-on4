@@ -112,7 +112,7 @@ export function AdminSidebar({
           onClick={() => setIsMobileOpen(false)}
         >
           <Image
-            src="/images/logo-xon.png"
+            src="/images/logo-xon.webp"
             alt="X-ON Nails"
             fill
             priority

@@ -10,7 +10,7 @@ import { PageDecorations } from "@/components/PageDecorations";
 
 const categoryNames: Record<string, { title: string; desc: string }> = {
   "handmade-grip-x-nails": {
-    title: "Handmade Grip-X Nails",
+    title: "HANDMADE X-ON NAILS",
     desc: "Patented Grip-X technology crafted by hand. Lightweight, flexible, and perfectly shaped for an undetectable fit.",
   },
   "cold-gel-glue": {

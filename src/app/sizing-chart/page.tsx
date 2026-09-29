@@ -83,12 +83,12 @@ export default function SizingChartPage() {
       {/* 1. TOP BANNER IMAGE */}
       <div className="w-full overflow-hidden bg-neutral-100 relative z-10">
         <Image
-          src="/images/ChatGPT-Image-18_51_04-20-thg-7-2026.png"
+          src="/images/sizing-chart-banner-horizontal.webp"
           alt="X-ON Sizing Chart Banner"
-          width={1983}
-          height={793}
+          width={2048}
+          height={1117}
           priority
-          className="w-full h-auto block"
+          className="w-full h-auto max-h-[460px] object-cover object-center block"
           quality={100}
           unoptimized
         />
@@ -277,7 +277,7 @@ export default function SizingChartPage() {
                 </div>
                 <div className="max-w-3xl mx-auto rounded-2xl overflow-hidden border border-neutral-200 shadow-sm bg-neutral-50">
                   <Image
-                    src="/images/ChatGPT-Image-19_11_41-20-thg-7-2026.png"
+                    src="/images/336ec7dd-4ed8-40e2-9cfb-777a558ebf10.webp"
                     alt="Nail Size Guide Visual"
                     width={1024}
                     height={991}
@@ -341,7 +341,7 @@ export default function SizingChartPage() {
 
               <div className="max-w-3xl mx-auto rounded-2xl overflow-hidden border border-neutral-200 shadow-sm bg-neutral-50">
                 <Image
-                  src="/images/ChatGPT-Image-19_24_29-20-thg-7-2026.png"
+                  src="/images/ChatGPT-Image-19_24_29-20-thg-7-2026.webp"
                   alt="Nail Shapes and Length Visual"
                   width={1254}
                   height={1254}
@@ -367,7 +367,7 @@ export default function SizingChartPage() {
 
               <div className="max-w-4xl mx-auto rounded-2xl overflow-hidden border border-neutral-200 shadow-sm bg-neutral-50">
                 <Image
-                  src="/images/1adfa597-e3d5-4214-aba5-40377e6f0ddc.png"
+                  src="/images/1adfa597-e3d5-4214-aba5-40377e6f0ddc.webp"
                   alt="Nail Length Details Measurement Diagram"
                   width={1535}
                   height={1024}

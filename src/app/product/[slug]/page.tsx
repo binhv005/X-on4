@@ -133,7 +133,7 @@ export default function ProductDetailPage({
       raw.thumbnail ||
       raw.images?.[0] ||
       raw.image ||
-      "/images/IMG_7098.JPG",
+      "/images/IMG_7098.webp",
     category: raw.category || "Handmade Grip-X Nails",
     url: `/product/${raw.slug || rawSlug}`,
     description: raw.description || "",

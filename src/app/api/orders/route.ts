@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     const normalizedItems = items.map((i: any) => ({
       productId: i.productId || i.id || "",
       productName: i.productName || i.name || i.title || "Press-On Nail Set",
-      productImage: i.productImage || i.image || "/images/IMG_7098.JPG",
+      productImage: i.productImage || i.image || "/images/IMG_7098.webp",
       size: i.size || "Standard",
       quantity: Number(i.quantity) || 1,
       price: Number(i.price || i.priceNumber) || 19.99,

@@ -22,7 +22,7 @@ export function mapApiProduct(p: any): Product {
     title: p.name || p.title || "X-ON Nails",
     price: priceVal,
     originalPrice: originalPriceVal,
-    image: p.thumbnail || p.images?.[0] || p.image || "/images/IMG_7098.JPG",
+    image: p.thumbnail || p.images?.[0] || p.image || "/images/IMG_7098.webp",
     category: p.category || "Handmade Grip-X Nails",
     designThemes: p.designThemes || [],
     length: p.length || "Extra Long",

@@ -245,7 +245,7 @@ const SettingsSchema = new Schema(
         default:
           "Handmade press-on nails and selected nail essentials designed with quality, style, and performance in mind.",
       },
-      ogImage: { type: String, default: "/images/IMG_7101.JPG" },
+      ogImage: { type: String, default: "/images/IMG_7101.webp" },
     },
   },
   { timestamps: true }

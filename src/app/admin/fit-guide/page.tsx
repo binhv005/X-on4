@@ -20,9 +20,9 @@ export default function AdminFitGuidePage() {
   ]);
 
   const [images] = useState([
-    "/images/xon_sizing_chart_diagram.jpg",
-    "/images/il_794xN.6709088186_npwh.webp",
-    "/images/ChatGPT-Image-18_51_04-20-thg-7-2026.png",
+    "/images/336ec7dd-4ed8-40e2-9cfb-777a558ebf10.webp",
+    "/images/sizing-chart-banner-horizontal.webp",
+    "/images/1adfa597-e3d5-4214-aba5-40377e6f0ddc.webp",
   ]);
 
   const [isSaving, setIsSaving] = useState(false);

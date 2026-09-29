@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
         <div className="relative min-h-[380px] sm:min-h-[480px] lg:min-h-[640px] w-full bg-neutral-100 overflow-hidden flex flex-col justify-end p-8 sm:p-10">
           {/* Full Crisp Image - 100% sharp & natural, no heavy dark overlay or blur */}
           <Image
-            src="/images/login-nail-hero.jpg"
+            src="/images/login-nail-hero.webp"
             alt="X-ON Luxury Nails"
             fill
             priority
@@ -63,7 +63,7 @@ export default function AdminLoginPage() {
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center">
                 <Image
-                  src="/images/logo-xon-clean.png"
+                  src="/images/logo-xon-clean.webp"
                   alt="X-ON Nails Logo"
                   width={130}
                   height={70}

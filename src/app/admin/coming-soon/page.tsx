@@ -24,7 +24,7 @@ export default function AdminComingSoonPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ComingSoonItem | null>(null);
   const [productName, setProductName] = useState("");
-  const [image, setImage] = useState("/images/IMG_7104.JPG");
+  const [image, setImage] = useState("/images/IMG_7104.webp");
   const [description, setDescription] = useState("");
   const [expectedReleaseDate, setExpectedReleaseDate] = useState("2026-11-01");
   const [status, setStatus] = useState<"Coming Soon" | "Published" | "Released" | "Hidden">(
@@ -59,7 +59,7 @@ export default function AdminComingSoonPage() {
   const openCreateModal = () => {
     setEditingItem(null);
     setProductName("");
-    setImage("/images/IMG_7104.JPG");
+    setImage("/images/IMG_7104.webp");
     setDescription("");
     setExpectedReleaseDate("2026-11-01");
     setStatus("Coming Soon");
@@ -292,7 +292,7 @@ export default function AdminComingSoonPage() {
                   required
                   value={image}
                   onChange={(e) => setImage(e.target.value)}
-                  placeholder="/images/IMG_7104.JPG"
+                  placeholder="/images/IMG_7104.webp"
                   className="w-full px-3.5 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-amber-500 focus:bg-white"
                 />
               </div>

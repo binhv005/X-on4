@@ -25,7 +25,7 @@ export default function AdminCategoriesPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState("/images/IMG_7098.JPG");
+  const [image, setImage] = useState("/images/IMG_7098.webp");
   const [status, setStatus] = useState<"active" | "inactive">("active");
   const [displayOrder, setDisplayOrder] = useState("1");
   const [isSaving, setIsSaving] = useState(false);
@@ -58,7 +58,7 @@ export default function AdminCategoriesPage() {
     setName("");
     setSlug("");
     setDescription("");
-    setImage("/images/IMG_7098.JPG");
+    setImage("/images/IMG_7098.webp");
     setStatus("active");
     setDisplayOrder((categories.length + 1).toString());
     setModalOpen(true);
@@ -69,7 +69,7 @@ export default function AdminCategoriesPage() {
     setName(cat.name);
     setSlug(cat.slug);
     setDescription(cat.description || "");
-    setImage(cat.image || "/images/IMG_7098.JPG");
+    setImage(cat.image || "/images/IMG_7098.webp");
     setStatus(cat.status);
     setDisplayOrder(cat.displayOrder.toString());
     setModalOpen(true);
@@ -204,7 +204,7 @@ export default function AdminCategoriesPage() {
                       <div className="flex items-center gap-3">
                         <div className="relative w-10 h-10 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
                           <Image
-                            src={cat.image || "/images/IMG_7098.JPG"}
+                            src={cat.image || "/images/IMG_7098.webp"}
                             alt={cat.name}
                             fill
                             className="object-cover"
@@ -340,7 +340,7 @@ export default function AdminCategoriesPage() {
                   type="text"
                   value={image}
                   onChange={(e) => setImage(e.target.value)}
-                  placeholder="/images/IMG_7098.JPG"
+                  placeholder="/images/IMG_7098.webp"
                   className="w-full px-3.5 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-amber-500 focus:bg-white"
                 />
               </div>

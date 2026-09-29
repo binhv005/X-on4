@@ -63,7 +63,7 @@ export function BlogForm({ initialData, isEdit = false }: BlogFormProps) {
   const [excerpt, setExcerpt] = useState(initialData?.excerpt || "");
   const [content, setContent] = useState(initialData?.content || "");
   const [thumbnail, setThumbnail] = useState(
-    initialData?.thumbnail || "/images/IMG_7098.JPG"
+    initialData?.thumbnail || "/images/IMG_7098.webp"
   );
   const [author, setAuthor] = useState(initialData?.author || "X-ON Nail Artist");
   const [category, setCategory] = useState(
@@ -857,7 +857,7 @@ export function BlogForm({ initialData, isEdit = false }: BlogFormProps) {
                     unoptimized
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                     sizes="300px"
-                    onError={() => setThumbnail("/images/IMG_7098.JPG")}
+                    onError={() => setThumbnail("/images/IMG_7098.webp")}
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center text-neutral-400 gap-1.5">

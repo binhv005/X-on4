@@ -257,7 +257,7 @@ export default function AdminProductsPage() {
                       <div className="flex items-center gap-3">
                         <div className="relative w-11 h-11 rounded-lg bg-neutral-100 overflow-hidden shrink-0 border border-neutral-200">
                           <Image
-                            src={p.thumbnail || p.images[0] || "/images/IMG_7098.JPG"}
+                            src={p.thumbnail || p.images[0] || "/images/IMG_7098.webp"}
                             alt={p.name}
                             fill
                             className="object-cover"

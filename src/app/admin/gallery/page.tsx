@@ -26,7 +26,7 @@ export default function AdminGalleryPage() {
   const [editingItem, setEditingItem] = useState<GalleryItem | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState("/images/IMG_7098.JPG");
+  const [image, setImage] = useState("/images/IMG_7098.webp");
   const [product, setProduct] = useState("");
   const [category, setCategory] = useState("Artisan Showcase");
   const [status, setStatus] = useState<"published" | "unpublished">("published");
@@ -61,7 +61,7 @@ export default function AdminGalleryPage() {
     setEditingItem(null);
     setTitle("");
     setDescription("");
-    setImage("/images/IMG_7098.JPG");
+    setImage("/images/IMG_7098.webp");
     setProduct("");
     setCategory("Artisan Showcase");
     setStatus("published");
@@ -321,7 +321,7 @@ export default function AdminGalleryPage() {
                     required
                     value={image}
                     onChange={(e) => setImage(e.target.value)}
-                    placeholder="/images/IMG_7098.JPG"
+                    placeholder="/images/IMG_7098.webp"
                     className="flex-1 px-3.5 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-900 focus:outline-none focus:border-amber-500 focus:bg-white"
                   />
                   <label className="px-3 py-2 bg-neutral-100 hover:bg-neutral-200 rounded-xl text-xs font-semibold text-neutral-700 cursor-pointer flex items-center gap-1">

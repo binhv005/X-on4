@@ -62,7 +62,7 @@ export default function CartPage() {
         items: items.map((item) => ({
           productId: item.id,
           productName: item.title,
-          productImage: item.image || "/images/IMG_7098.JPG",
+          productImage: item.image || "/images/IMG_7098.webp",
           size: item.size || "Standard",
           quantity: item.quantity,
           price: item.priceNumber,
@@ -205,7 +205,7 @@ export default function CartPage() {
                   <div key={item.id} className="py-6 flex gap-6 items-center">
                     <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-neutral-50 shrink-0 border border-gray-100">
                       <Image
-                        src={item.image || "/images/IMG_7098.JPG"}
+                        src={item.image || "/images/IMG_7098.webp"}
                         alt={item.title}
                         fill
                         sizes="96px"
