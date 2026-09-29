@@ -98,13 +98,51 @@ export function Header() {
     </div>
   );
 
+  const isHome = pathname === "/";
+  const isShop =
+    pathname === "/shop" ||
+    pathname.startsWith("/product") ||
+    pathname.startsWith("/product-category") ||
+    pathname.startsWith("/bundle-and-save") ||
+    pathname.startsWith("/gallery-product");
+  const isAbout =
+    pathname === "/about" ||
+    pathname.startsWith("/about") ||
+    pathname.startsWith("/our-story");
+  const isFitGuide =
+    pathname === "/sizing-chart" ||
+    pathname.startsWith("/sizing-chart") ||
+    pathname.startsWith("/fit-guide");
+  const isWholesale =
+    pathname === "/wholesale-signup" || pathname.startsWith("/wholesale");
+  const isJournal =
+    pathname === "/blog" ||
+    pathname.startsWith("/blog") ||
+    pathname.startsWith("/journal");
+  const isContact =
+    pathname === "/contact-us" || pathname.startsWith("/contact");
+
+  const getLinkClass = (isActive: boolean) =>
+    `py-2.5 whitespace-nowrap block transition-colors duration-150 cursor-pointer ${
+      isActive
+        ? "text-rose-700 font-bold"
+        : "text-neutral-800 hover:text-rose-700 font-bold"
+    }`;
+
+  const getShopClass = (isActive: boolean) =>
+    `py-2.5 transition-colors duration-150 flex items-center gap-1.5 whitespace-nowrap cursor-pointer ${
+      isActive
+        ? "text-rose-700 font-bold"
+        : "text-neutral-800 hover:text-rose-700 font-bold"
+    }`;
+
   const renderNavLinks = () => (
-    <ul className="flex items-center gap-3.5 xl:gap-6 2xl:gap-8 text-[12px] xl:text-[13px] font-bold uppercase tracking-[0.1em] xl:tracking-[0.14em] text-neutral-800 whitespace-nowrap shrink-0">
+    <ul className="flex items-center gap-3.5 xl:gap-6 2xl:gap-8 text-[12px] xl:text-[13px] uppercase tracking-[0.1em] xl:tracking-[0.14em] text-neutral-800 whitespace-nowrap shrink-0">
       <li className="shrink-0">
         <Link
           href="/"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
+          className={getLinkClass(isHome)}
         >
           HOME
         </Link>
@@ -118,7 +156,7 @@ export function Header() {
             e.preventDefault();
             window.location.href = "/shop";
           }}
-          className="hover:text-rose-700 transition-colors flex items-center gap-1.5 whitespace-nowrap"
+          className={getShopClass(isShop)}
         >
           SHOP <ChevronDown className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-200 stroke-[2]" />
         </Link>
@@ -286,7 +324,7 @@ export function Header() {
         <Link
           href="/about"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
+          className={getLinkClass(isAbout)}
         >
           OUR STORY
         </Link>
@@ -296,7 +334,7 @@ export function Header() {
         <Link
           href="/sizing-chart"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
+          className={getLinkClass(isFitGuide)}
         >
           FIT GUIDE
         </Link>
@@ -306,7 +344,7 @@ export function Header() {
         <Link
           href="/wholesale-signup"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
+          className={getLinkClass(isWholesale)}
         >
           WHOLESALE
         </Link>
@@ -316,7 +354,7 @@ export function Header() {
         <Link
           href="/blog"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
+          className={getLinkClass(isJournal)}
         >
           JOURNAL
         </Link>
@@ -326,7 +364,7 @@ export function Header() {
         <Link
           href="/contact-us"
           onClick={handleLinkClick}
-          className="hover:text-rose-700 transition-colors py-2.5 whitespace-nowrap block"
+          className={getLinkClass(isContact)}
         >
           CONTACT
         </Link>
@@ -461,10 +499,10 @@ export function Header() {
               <Link
                 href="/"
                 onClick={handleDrawerLinkClick}
-                className={`block py-3.5 px-6 text-[13px] font-bold uppercase tracking-wider transition-colors ${
-                  pathname === "/"
-                    ? "bg-[#ececec] text-neutral-900"
-                    : "text-neutral-600 hover:text-black hover:bg-neutral-50"
+                className={`block py-3.5 px-6 text-[13px] uppercase tracking-wider transition-colors ${
+                  isHome
+                    ? "bg-rose-50 text-rose-700 font-extrabold border-l-4 border-rose-700"
+                    : "text-neutral-600 hover:text-black hover:bg-neutral-50 font-bold"
                 }`}
               >
                 HOME
@@ -473,10 +511,10 @@ export function Header() {
               {/* SHOP */}
               <div>
                 <div
-                  className={`flex items-center justify-between py-3.5 px-6 text-[13px] font-bold uppercase tracking-wider cursor-pointer transition-colors ${
-                    pathname.startsWith("/shop")
-                      ? "bg-[#ececec] text-neutral-900"
-                      : "text-neutral-600 hover:text-black hover:bg-neutral-50"
+                  className={`flex items-center justify-between py-3.5 px-6 text-[13px] uppercase tracking-wider cursor-pointer transition-colors ${
+                    isShop
+                      ? "bg-rose-50 text-rose-700 font-extrabold border-l-4 border-rose-700"
+                      : "text-neutral-600 hover:text-black hover:bg-neutral-50 font-bold"
                   }`}
                   onClick={() => setShopExpanded(!shopExpanded)}
                 >
@@ -514,49 +552,49 @@ export function Header() {
                     <Link
                       href="/shop"
                       onClick={handleDrawerLinkClick}
-                      className="block py-2.5 pl-9 pr-6 hover:text-black hover:bg-neutral-100 transition-colors"
+                      className="block py-2.5 pl-9 pr-6 hover:text-rose-700 hover:bg-neutral-100 transition-colors"
                     >
                       All Products
                     </Link>
                     <Link
                       href="/shop?theme=3D"
                       onClick={handleDrawerLinkClick}
-                      className="block py-2.5 pl-9 pr-6 hover:text-black hover:bg-neutral-100 transition-colors"
+                      className="block py-2.5 pl-9 pr-6 hover:text-rose-700 hover:bg-neutral-100 transition-colors"
                     >
                       3D Design Theme
                     </Link>
                     <Link
                       href="/shop?theme=Flower"
                       onClick={handleDrawerLinkClick}
-                      className="block py-2.5 pl-9 pr-6 hover:text-black hover:bg-neutral-100 transition-colors"
+                      className="block py-2.5 pl-9 pr-6 hover:text-rose-700 hover:bg-neutral-100 transition-colors"
                     >
                       Flower Design Theme
                     </Link>
                     <Link
                       href="/shop?theme=Y2K"
                       onClick={handleDrawerLinkClick}
-                      className="block py-2.5 pl-9 pr-6 hover:text-black hover:bg-neutral-100 transition-colors"
+                      className="block py-2.5 pl-9 pr-6 hover:text-rose-700 hover:bg-neutral-100 transition-colors"
                     >
                       Y2K Design Theme
                     </Link>
                     <Link
                       href="/gallery-product"
                       onClick={handleDrawerLinkClick}
-                      className="block py-2.5 pl-9 pr-6 hover:text-black hover:bg-neutral-100 transition-colors"
+                      className="block py-2.5 pl-9 pr-6 hover:text-rose-700 hover:bg-neutral-100 transition-colors"
                     >
                       Product Gallery
                     </Link>
                     <Link
                       href="/shop?shape=Almond"
                       onClick={handleDrawerLinkClick}
-                      className="block py-2.5 pl-9 pr-6 hover:text-black hover:bg-neutral-100 transition-colors"
+                      className="block py-2.5 pl-9 pr-6 hover:text-rose-700 hover:bg-neutral-100 transition-colors"
                     >
                       Almond Shape
                     </Link>
                     <Link
                       href="/shop?shape=Coffin"
                       onClick={handleDrawerLinkClick}
-                      className="block py-2.5 pl-9 pr-6 hover:text-black hover:bg-neutral-100 transition-colors"
+                      className="block py-2.5 pl-9 pr-6 hover:text-rose-700 hover:bg-neutral-100 transition-colors"
                     >
                       Coffin Shape
                     </Link>
@@ -568,10 +606,10 @@ export function Header() {
               <Link
                 href="/about"
                 onClick={handleDrawerLinkClick}
-                className={`block py-3.5 px-6 text-[13px] font-bold uppercase tracking-wider transition-colors ${
-                  pathname === "/about"
-                    ? "bg-[#ececec] text-neutral-900"
-                    : "text-neutral-600 hover:text-black hover:bg-neutral-50"
+                className={`block py-3.5 px-6 text-[13px] uppercase tracking-wider transition-colors ${
+                  isAbout
+                    ? "bg-rose-50 text-rose-700 font-extrabold border-l-4 border-rose-700"
+                    : "text-neutral-600 hover:text-black hover:bg-neutral-50 font-bold"
                 }`}
               >
                 OUR STORY
@@ -581,10 +619,10 @@ export function Header() {
               <Link
                 href="/sizing-chart"
                 onClick={handleDrawerLinkClick}
-                className={`block py-3.5 px-6 text-[13px] font-bold uppercase tracking-wider transition-colors ${
-                  pathname === "/sizing-chart"
-                    ? "bg-[#ececec] text-neutral-900"
-                    : "text-neutral-600 hover:text-black hover:bg-neutral-50"
+                className={`block py-3.5 px-6 text-[13px] uppercase tracking-wider transition-colors ${
+                  isFitGuide
+                    ? "bg-rose-50 text-rose-700 font-extrabold border-l-4 border-rose-700"
+                    : "text-neutral-600 hover:text-black hover:bg-neutral-50 font-bold"
                 }`}
               >
                 FIT GUIDE
@@ -594,10 +632,10 @@ export function Header() {
               <Link
                 href="/wholesale-signup"
                 onClick={handleDrawerLinkClick}
-                className={`block py-3.5 px-6 text-[13px] font-bold uppercase tracking-wider transition-colors ${
-                  pathname === "/wholesale-signup"
-                    ? "bg-[#ececec] text-neutral-900"
-                    : "text-neutral-600 hover:text-black hover:bg-neutral-50"
+                className={`block py-3.5 px-6 text-[13px] uppercase tracking-wider transition-colors ${
+                  isWholesale
+                    ? "bg-rose-50 text-rose-700 font-extrabold border-l-4 border-rose-700"
+                    : "text-neutral-600 hover:text-black hover:bg-neutral-50 font-bold"
                 }`}
               >
                 WHOLESALE
@@ -607,10 +645,10 @@ export function Header() {
               <Link
                 href="/bundle-and-save"
                 onClick={handleDrawerLinkClick}
-                className={`block py-3.5 px-6 text-[13px] font-bold uppercase tracking-wider transition-colors ${
+                className={`block py-3.5 px-6 text-[13px] uppercase tracking-wider transition-colors ${
                   pathname === "/bundle-and-save"
-                    ? "bg-[#ececec] text-neutral-900"
-                    : "text-neutral-600 hover:text-black hover:bg-neutral-50"
+                    ? "bg-rose-50 text-rose-700 font-extrabold border-l-4 border-rose-700"
+                    : "text-neutral-600 hover:text-black hover:bg-neutral-50 font-bold"
                 }`}
               >
                 BUNDLE AND SAVE
@@ -620,10 +658,10 @@ export function Header() {
               <Link
                 href="/blog"
                 onClick={handleDrawerLinkClick}
-                className={`block py-3.5 px-6 text-[13px] font-bold uppercase tracking-wider transition-colors ${
-                  pathname.startsWith("/blog")
-                    ? "bg-[#ececec] text-neutral-900"
-                    : "text-neutral-600 hover:text-black hover:bg-neutral-50"
+                className={`block py-3.5 px-6 text-[13px] uppercase tracking-wider transition-colors ${
+                  isJournal
+                    ? "bg-rose-50 text-rose-700 font-extrabold border-l-4 border-rose-700"
+                    : "text-neutral-600 hover:text-black hover:bg-neutral-50 font-bold"
                 }`}
               >
                 JOURNAL
@@ -633,10 +671,10 @@ export function Header() {
               <Link
                 href="/contact-us"
                 onClick={handleDrawerLinkClick}
-                className={`block py-3.5 px-6 text-[13px] font-bold uppercase tracking-wider transition-colors ${
-                  pathname === "/contact-us"
-                    ? "bg-[#ececec] text-neutral-900"
-                    : "text-neutral-600 hover:text-black hover:bg-neutral-50"
+                className={`block py-3.5 px-6 text-[13px] uppercase tracking-wider transition-colors ${
+                  isContact
+                    ? "bg-rose-50 text-rose-700 font-extrabold border-l-4 border-rose-700"
+                    : "text-neutral-600 hover:text-black hover:bg-neutral-50 font-bold"
                 }`}
               >
                 CONTACT
