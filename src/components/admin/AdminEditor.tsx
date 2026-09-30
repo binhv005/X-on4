@@ -2554,16 +2554,6 @@ export default function AdminEditor({
               <span className="material-symbols-outlined text-[14px]">view_column</span>
               <span>2-Col</span>
             </button>
-
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => addBlock("divider")}
-              className="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
-              title="Add Divider"
-            >
-              <span className="material-symbols-outlined text-[14px]">horizontal_rule</span>
-            </button>
           </div>
         </div>
       </header>
