@@ -649,9 +649,17 @@ export const DataStore = {
     let list = [...store.products];
 
     if (params?.search) {
-      const q = params.search.toLowerCase();
+      const q = params.search.toLowerCase().trim();
       list = list.filter(
-        (p) => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.sku?.toLowerCase().includes(q) ||
+          p.category?.toLowerCase().includes(q) ||
+          p.collection?.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q) ||
+          (Array.isArray(p.tags) && p.tags.some((t) => t.toLowerCase().includes(q))) ||
+          (Array.isArray(p.designThemes) && p.designThemes.some((t) => t.toLowerCase().includes(q))) ||
+          (Array.isArray(p.shapes) && p.shapes.some((s) => s.toLowerCase().includes(q)))
       );
     }
     if (params?.category && params.category !== "all") {

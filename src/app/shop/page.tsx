@@ -1,27 +1,58 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import productsData from "@/data/products.json";
 import { type Product } from "@/components/ProductCard";
 import { mapApiProduct } from "@/lib/productMapper";
 import { Search, ChevronRight } from "lucide-react";
 import { PageDecorations } from "@/components/PageDecorations";
 
-export default function ShopPage() {
+function ShopContent() {
+  const searchParams = useSearchParams();
+  const qParam = searchParams.get("q") || searchParams.get("search") || "";
+  const shapeParam = searchParams.get("shape") || "all";
+  const themeParam = searchParams.get("theme");
+  const typeParam = searchParams.get("type") || "all";
+
   const [productsList, setProductsList] = useState<Product[]>(() =>
     (productsData as any[]).map(mapApiProduct)
   );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTheme, setSelectedTheme] = useState<string[]>([]);
-  const [selectedShape, setSelectedShape] = useState<string>("all");
-  const [selectedType, setSelectedType] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState(qParam);
+  const [selectedTheme, setSelectedTheme] = useState<string[]>(themeParam ? [themeParam] : []);
+  const [selectedShape, setSelectedShape] = useState<string>(shapeParam);
+  const [selectedType, setSelectedType] = useState<string>(typeParam);
   const [maxPrice, setMaxPrice] = useState<number>(112);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedLength, setSelectedLength] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("default");
+
+  useEffect(() => {
+    if (qParam !== undefined) {
+      setSearchQuery(qParam);
+    }
+  }, [qParam]);
+
+  useEffect(() => {
+    if (shapeParam) {
+      setSelectedShape(shapeParam);
+    }
+  }, [shapeParam]);
+
+  useEffect(() => {
+    if (themeParam) {
+      setSelectedTheme([themeParam]);
+    }
+  }, [themeParam]);
+
+  useEffect(() => {
+    if (typeParam) {
+      setSelectedType(typeParam);
+    }
+  }, [typeParam]);
 
   useEffect(() => {
     async function loadLiveProducts() {
@@ -681,5 +712,19 @@ export default function ShopPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ShopPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white py-20 text-center text-xs text-gray-400">
+          Loading products...
+        </div>
+      }
+    >
+      <ShopContent />
+    </Suspense>
   );
 }

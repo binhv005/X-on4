@@ -49,13 +49,13 @@ export function BlogForm({ initialData, isEdit = false }: BlogFormProps) {
 
       const json = await res.json();
       if (res.ok && json.success) {
-        success(isEdit ? "Cập nhật bài viết thành công!" : "Xuất bản bài viết thành công!");
+        success(isEdit ? "Article updated successfully!" : "Article published successfully!");
         router.push("/admin/blog");
       } else {
-        error(json.message || "Lỗi khi lưu bài viết.");
+        error(json.message || "Error saving article.");
       }
     } catch {
-      error("Có lỗi xảy ra khi lưu bài viết.");
+      error("An error occurred while saving the article.");
     }
   };
 

@@ -18,31 +18,37 @@ export interface PromptModalProps {
 
 export default function PromptModal({
   isOpen,
-  title = "Nhập thông tin",
+  title = "Enter Information",
   description = "",
   placeholder = "https://...",
   defaultValue = "",
-  confirmText = "Xác nhận",
-  cancelText = "Hủy bỏ",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
   icon = "link",
   iconColor = "sky",
   onConfirm,
   onCancel,
 }: PromptModalProps) {
+  const [prevDefault, setPrevDefault] = useState(defaultValue);
   const [value, setValue] = useState(defaultValue);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  if (defaultValue !== prevDefault) {
+    setPrevDefault(defaultValue);
+    setValue(defaultValue);
+  }
+
   useEffect(() => {
     if (isOpen) {
-      setValue(defaultValue || "");
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
           inputRef.current.select();
         }
       }, 50);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen, defaultValue]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -145,7 +151,7 @@ export default function PromptModal({
             type="button"
             onClick={onCancel}
             className="p-1 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex-shrink-0"
-            title="Đóng"
+            title="Close"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -167,7 +173,7 @@ export default function PromptModal({
                 type="button"
                 onClick={() => setValue("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                title="Xóa nội dung"
+                title="Clear input"
               >
                 <span className="material-symbols-outlined text-[16px]">
                   cancel

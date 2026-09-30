@@ -17,8 +17,9 @@ export interface BlogBlock {
     | "divider"
     | "code"
     | "columns";
+  level?: number;
   text?: string;
-  align?: "left" | "center" | "right";
+  align?: "left" | "center" | "right" | "justify";
   color?: string;
   lineHeight?: string;
   url?: string;
@@ -44,6 +45,7 @@ export interface BlogBlock {
   rightImageUrl?: string;
   rightImageCaption?: string;
   rightImageHeight?: string;
+  isLoading?: boolean;
 }
 
 export function formatRichText(raw?: string): string {
@@ -86,7 +88,7 @@ export function formatRichText(raw?: string): string {
       const customWidth = sizeParam ? sizeParam.trim() : "100%";
       const optimizedUrl = optimizeImageUrl(url, { width: 1000, quality: 80 });
       return `<figure class="my-6 mx-auto flex flex-col items-center" style="width: ${customWidth}; max-width: 100%;">
-        <img src="${optimizedUrl}" alt="${cleanCaption || "Hình ảnh bài viết WebP"}" loading="lazy" decoding="async" class="w-full max-h-[520px] object-cover rounded-2xl transition-transform duration-500 hover:scale-[1.005] block mx-auto shadow-md" />
+        <img src="${optimizedUrl}" alt="${cleanCaption || "Article Image WebP"}" loading="lazy" decoding="async" class="w-full max-h-[520px] object-cover rounded-2xl transition-transform duration-500 hover:scale-[1.005] block mx-auto shadow-md" />
         ${
           cleanCaption
             ? `<figcaption class="w-full text-xs text-slate-500 dark:text-slate-400 italic text-center pt-2.5 px-4">${cleanCaption}</figcaption>`
@@ -147,14 +149,31 @@ export default function ArticleBody({
         <div className="space-y-6 text-slate-800 dark:text-slate-200 text-base sm:text-lg leading-relaxed font-normal">
           {parsedBlocks.map((block, idx) => {
             if (block.type === "heading") {
+              const lvl = block.level || 2;
+              const HeadingTag = (`h${lvl}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6");
+              const sizeClasses =
+                lvl === 1
+                  ? "text-3xl sm:text-4xl font-extrabold pb-4 mt-10 border-b border-slate-200 dark:border-white/10"
+                  : lvl === 2
+                  ? "text-2xl sm:text-3xl font-bold pb-3 mt-8 border-b border-slate-200 dark:border-white/10"
+                  : lvl === 3
+                  ? "text-xl sm:text-2xl font-bold pb-2 mt-6"
+                  : lvl === 4
+                  ? "text-lg sm:text-xl font-bold pb-1.5 mt-5"
+                  : lvl === 5
+                  ? "text-base sm:text-lg font-bold pb-1 mt-4"
+                  : "text-sm sm:text-base font-semibold pb-1 mt-3";
+
               return (
-                <h2
+                <HeadingTag
                   key={block.id || idx}
-                  className={`text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3 border-b border-slate-200 dark:border-white/10 pb-3 mt-8 ${
+                  className={`${sizeClasses} text-slate-900 dark:text-white tracking-tight flex items-center gap-3 ${
                     block.align === "center"
                       ? "justify-center text-center"
                       : block.align === "right"
                       ? "justify-end text-right"
+                      : block.align === "justify"
+                      ? "justify-between text-justify"
                       : "text-left"
                   }`}
                   style={{
@@ -170,7 +189,7 @@ export default function ArticleBody({
                       __html: formatRichText(block.text),
                     }}
                   />
-                </h2>
+                </HeadingTag>
               );
             }
 
@@ -185,6 +204,8 @@ export default function ArticleBody({
                           ? "text-center"
                           : block.align === "right"
                           ? "text-right"
+                          : block.align === "justify"
+                          ? "text-justify"
                           : "text-left"
                       }`}
                       style={{
@@ -217,9 +238,9 @@ export default function ArticleBody({
                   className={`my-8 max-w-full flex flex-col ${alignClasses}`}
                   style={{ width: imageWidth, maxWidth: "100%" }}
                 >
-                  <OptimizedImage
+                    <OptimizedImage
                     src={block.url}
-                    alt={block.caption || "Hình minh họa WebP"}
+                    alt={block.caption || "Article Illustration WebP"}
                     sizes="(max-width: 768px) 100vw, 1000px"
                     containerClassName="w-full rounded-2xl overflow-hidden shadow-lg"
                     style={{ maxHeight: maxHeightStyle }}
@@ -439,7 +460,7 @@ export default function ArticleBody({
                         <figure className="my-2 max-w-full flex flex-col items-center">
                           <OptimizedImage
                             src={block.leftImageUrl}
-                            alt={block.leftImageCaption || "Hình ảnh cột trái"}
+                            alt={block.leftImageCaption || "Left column image"}
                             sizes="(max-width: 768px) 100vw, 600px"
                             containerClassName="w-full rounded-2xl overflow-hidden"
                             style={
@@ -481,7 +502,7 @@ export default function ArticleBody({
                         <figure className="my-2 max-w-full flex flex-col items-center">
                           <OptimizedImage
                             src={block.rightImageUrl}
-                            alt={block.rightImageCaption || "Hình ảnh cột phải"}
+                            alt={block.rightImageCaption || "Right column image"}
                             sizes="(max-width: 768px) 100vw, 600px"
                             containerClassName="w-full rounded-2xl overflow-hidden"
                             style={

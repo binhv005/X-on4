@@ -24,7 +24,7 @@ function mdToHtml(str?: string): string {
     .replace(/~~(.*?)~~/g, "<del>$1</del>")
     .replace(
       /\[(.*?)\]\((.*?)\)/g,
-      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-[#4cd7f6] hover:underline">$1</a>'
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-rose-600 dark:text-rose-400 hover:underline font-medium">$1</a>'
     );
 }
 
@@ -44,15 +44,133 @@ function cleanAlignTags(str?: string): string {
   return cleaned;
 }
 
-// Helper to clean pasted HTML
-function cleanPastedHtml(html: string): string {
+// Convert File to Base64
+const readFileAsBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+};
+
+// Convert hex string to Base64 data URL
+function hexToBase64(hexStr: string, mimeType: string): string | null {
+  try {
+    const cleanHex = hexStr.replace(/[^0-9a-fA-F]/g, "");
+    if (cleanHex.length < 32 || cleanHex.length % 2 !== 0) return null;
+
+    const byteCount = cleanHex.length / 2;
+    const u8 = new Uint8Array(byteCount);
+    for (let i = 0; i < byteCount; i++) {
+      u8[i] = parseInt(cleanHex.substring(i * 2, i * 2 + 2), 16);
+    }
+
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < u8.length; i += chunkSize) {
+      const chunk = u8.subarray(i, Math.min(i + chunkSize, u8.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    return `data:${mimeType};base64,${btoa(binary)}`;
+  } catch {
+    return null;
+  }
+}
+
+// Extract images from Word's text/rtf clipboard data
+function extractImagesFromRtf(rtf: string): string[] {
+  if (!rtf) return [];
+  const results: string[] = [];
+  try {
+    let searchIdx = 0;
+    while ((searchIdx = rtf.indexOf("\\pict", searchIdx)) !== -1) {
+      // Find the starting brace of this picture group
+      const startBrace = rtf.lastIndexOf("{", searchIdx);
+      if (startBrace === -1) {
+        searchIdx += 5;
+        continue;
+      }
+
+      // Track brace depth to find matching closing brace
+      let depth = 1;
+      let endIdx = startBrace + 1;
+      while (endIdx < rtf.length && depth > 0) {
+        const char = rtf[endIdx];
+        if (char === "\\") {
+          endIdx += 2;
+          continue;
+        }
+        if (char === "{") depth++;
+        else if (char === "}") depth--;
+        endIdx++;
+      }
+
+      const pictBlock = rtf.slice(startBrace, endIdx);
+      searchIdx = endIdx;
+
+      // Determine mime type
+      let mime = "image/png";
+      if (pictBlock.includes("\\jpegblip") || pictBlock.includes("\\jpgblip")) {
+        mime = "image/jpeg";
+      } else if (pictBlock.includes("\\pngblip")) {
+        mime = "image/png";
+      }
+
+      // Extract hex sequence
+      let rawHex = "";
+      const blipMatch = pictBlock.match(
+        /\\(pngblip|jpegblip|jpgblip|emfblip|wmetafile\d*|dibitmap\d*)[^\r\n0-9a-fA-F]*([0-9a-fA-F\s\r\n]{64,})/i
+      );
+      if (blipMatch && blipMatch[2]) {
+        rawHex = blipMatch[2].replace(/[^0-9a-fA-F]/g, "");
+      } else {
+        const hexMatches = pictBlock.match(/[0-9a-fA-F\s\r\n]{64,}/g);
+        if (hexMatches) {
+          for (const seq of hexMatches) {
+            const clean = seq.replace(/[^0-9a-fA-F]/g, "");
+            if (clean.length > rawHex.length) {
+              rawHex = clean;
+            }
+          }
+        }
+      }
+
+      if (rawHex.length >= 64) {
+        const hexLower = rawHex.toLowerCase();
+        if (hexLower.startsWith("ffd8ff") || hexLower.includes("ffd8ffe0") || hexLower.includes("ffd8ffe1")) {
+          mime = "image/jpeg";
+        } else if (hexLower.startsWith("89504e47")) {
+          mime = "image/png";
+        } else if (hexLower.startsWith("47494638")) {
+          mime = "image/gif";
+        } else if (hexLower.startsWith("424d")) {
+          mime = "image/bmp";
+        } else if (hexLower.startsWith("52494646") && hexLower.includes("57454250")) {
+          mime = "image/webp";
+        }
+
+        const base64Url = hexToBase64(rawHex, mime);
+        if (base64Url) {
+          results.push(base64Url);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("RTF image parsing error:", err);
+  }
+  return results;
+}
+
+// Helper to clean pasted HTML and fix local/Word file:// image paths
+function cleanPastedHtml(html: string, rtfImages: string[] = []): string {
   if (!html) return "";
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
 
-    // Remove meta, style, script, link tags
-    doc.querySelectorAll("meta, style, script, link").forEach((el) => el.remove());
+    // Remove meta, style, script, link, xml, head tags
+    doc.querySelectorAll("meta, style, script, link, xml, head").forEach((el) => el.remove());
 
     // Unwrap or clean legacy <font> tags
     doc.querySelectorAll("font").forEach((fontEl) => {
@@ -62,6 +180,64 @@ function cleanPastedHtml(html: string): string {
           parent.insertBefore(fontEl.firstChild, fontEl);
         }
         parent.removeChild(fontEl);
+      }
+    });
+
+    let rtfImgIndex = 0;
+
+    // Handle VML imagedata tags (Word often outputs <v:imagedata src="file:///...">)
+    doc.querySelectorAll("v\\:imagedata, imagedata").forEach((vmlEl) => {
+      const src = vmlEl.getAttribute("src") || "";
+      if (src.startsWith("file:") || src.startsWith("cid:") || src.startsWith("blob:") || !src) {
+        if (rtfImages.length > rtfImgIndex) {
+          const img = doc.createElement("img");
+          img.src = rtfImages[rtfImgIndex++];
+          img.className =
+            "my-3 max-h-[420px] max-w-full rounded-xl object-cover block mx-auto shadow-lg text-center select-none";
+          img.setAttribute("contenteditable", "false");
+          vmlEl.parentNode?.replaceChild(img, vmlEl);
+        } else {
+          vmlEl.remove();
+        }
+      }
+    });
+
+    // Process all <img> tags
+    const allImages = doc.querySelectorAll("img");
+    allImages.forEach((img) => {
+      let src = img.getAttribute("src") || "";
+      const isLocalOrInvalid =
+        src.startsWith("file:") ||
+        src.startsWith("blob:") ||
+        src.startsWith("cid:") ||
+        src.startsWith("webkit-fake-url:") ||
+        !src.trim();
+
+      if (isLocalOrInvalid) {
+        if (rtfImages.length > rtfImgIndex) {
+          src = rtfImages[rtfImgIndex++];
+          img.setAttribute("src", src);
+        } else {
+          // Can't load local file:// URL from web, remove to prevent broken image icon
+          img.remove();
+          return;
+        }
+      }
+
+      img.className =
+        "my-3 max-h-[420px] max-w-full rounded-xl object-cover block mx-auto shadow-lg text-center select-none";
+      img.setAttribute("contenteditable", "false");
+      img.removeAttribute("align");
+      img.removeAttribute("width");
+      img.removeAttribute("height");
+
+      // Ensure every image is followed by an editable paragraph so user can type below
+      const pAfter = doc.createElement("p");
+      pAfter.innerHTML = "<br>";
+      if (img.nextSibling) {
+        img.parentNode?.insertBefore(pAfter, img.nextSibling);
+      } else {
+        img.parentNode?.appendChild(pAfter);
       }
     });
 
@@ -75,17 +251,13 @@ function cleanPastedHtml(html: string): string {
       htmlEl.style.backgroundClip = "";
       htmlEl.removeAttribute("bgcolor");
 
-      // 2. Remove ALL text colors completely
-      htmlEl.style.color = "";
-      htmlEl.removeAttribute("color");
+      // 2. Remove default text colors if needed
+      if (htmlEl.getAttribute("color")) {
+        htmlEl.removeAttribute("color");
+      }
 
-      // 3. Remove default document font-family, font-size, and line-height overrides
-      htmlEl.style.fontFamily = "";
-      htmlEl.style.fontSize = "";
-      htmlEl.style.lineHeight = "";
-
-      // 4. Remove MS Word / Google Docs specific classes
-      if (htmlEl.className) {
+      // 3. Remove MS Word / Google Docs specific classes
+      if (htmlEl.className && htmlEl.tagName !== "IMG") {
         const cleanedClass = htmlEl.className
           .split(" ")
           .filter(
@@ -102,12 +274,7 @@ function cleanPastedHtml(html: string): string {
         }
       }
 
-      // 5. Ensure all images and figures are automatically centered
-      if (htmlEl.tagName.toLowerCase() === "img") {
-        htmlEl.className =
-          "my-3 max-h-[420px] max-w-full rounded-xl object-cover block mx-auto shadow-lg text-center";
-        htmlEl.removeAttribute("align");
-      }
+      // 4. Ensure all figures are centered
       if (htmlEl.tagName.toLowerCase() === "figure") {
         htmlEl.className = "my-4 text-center block mx-auto";
         htmlEl.removeAttribute("align");
@@ -118,6 +285,21 @@ function cleanPastedHtml(html: string): string {
         htmlEl.removeAttribute("style");
       }
     });
+
+    // Ensure the document ends with an editable line
+    const lastChild = doc.body.lastElementChild;
+    if (
+      lastChild &&
+      (lastChild.tagName === "IMG" ||
+        lastChild.tagName === "FIGURE" ||
+        lastChild.tagName === "TABLE" ||
+        lastChild.tagName === "DIV" ||
+        lastChild.tagName === "BLOCKQUOTE")
+    ) {
+      const p = doc.createElement("p");
+      p.innerHTML = "<br>";
+      doc.body.appendChild(p);
+    }
 
     return doc.body.innerHTML || html;
   } catch {
@@ -139,6 +321,7 @@ interface RichEditableBlockProps {
   inputRef?: React.RefCallback<HTMLDivElement> | React.MutableRefObject<HTMLDivElement | null>;
   onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
   blockId?: string;
+  field?: string;
 }
 
 function RichEditableBlock({
@@ -154,6 +337,7 @@ function RichEditableBlock({
   inputRef,
   onKeyDown,
   blockId,
+  field,
 }: RichEditableBlockProps) {
   const innerRef = useRef<HTMLDivElement | null>(null);
   const isComposingRef = useRef(false);
@@ -173,7 +357,7 @@ function RichEditableBlock({
     if (innerRef.current) {
       const current = innerRef.current.innerHTML;
       const target = html || "";
-      if (current !== target) {
+      if (current !== target && document.activeElement !== innerRef.current) {
         innerRef.current.innerHTML = target;
       }
     }
@@ -187,31 +371,48 @@ function RichEditableBlock({
     onChange(isCleanEmpty ? "" : newHtml);
   };
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  const handlePaste = async (e: React.ClipboardEvent<HTMLDivElement>) => {
     const clipboardData = e.clipboardData;
     if (!clipboardData) return;
 
-    // 1. Check if an image file is in clipboard
+    // Check all image files in clipboard
     const items = clipboardData.items;
+    const pastedImageFiles: File[] = [];
     if (items) {
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.startsWith("image/")) {
-          const file = items[i].getAsFile();
-          if (file && onPasteImage) {
-            e.preventDefault();
-            onPasteImage(file);
-            return;
-          }
+          const f = items[i].getAsFile();
+          if (f) pastedImageFiles.push(f);
         }
       }
     }
 
     const htmlData = clipboardData.getData("text/html");
+    const rtfData = clipboardData.getData("text/rtf");
     const plainText = clipboardData.getData("text/plain");
 
+    // Pure image paste (no accompanying text or HTML)
+    if (pastedImageFiles.length > 0 && (!plainText || !plainText.trim()) && (!htmlData || !htmlData.trim())) {
+      e.preventDefault();
+      onPasteImage?.(pastedImageFiles[0]);
+      return;
+    }
+
     e.preventDefault();
+
+    // Extract images from RTF (Word clipboard)
+    let rtfImages = extractImagesFromRtf(rtfData);
+    if (rtfImages.length === 0 && pastedImageFiles.length > 0) {
+      for (const imgFile of pastedImageFiles) {
+        const fileBase64 = await readFileAsBase64(imgFile);
+        if (fileBase64) {
+          rtfImages.push(fileBase64);
+        }
+      }
+    }
+
     if (htmlData && htmlData.trim()) {
-      const cleanHtml = cleanPastedHtml(htmlData);
+      const cleanHtml = cleanPastedHtml(htmlData, rtfImages);
       document.execCommand("insertHTML", false, cleanHtml);
     } else if (plainText) {
       document.execCommand("insertText", false, plainText);
@@ -225,13 +426,80 @@ function RichEditableBlock({
     }
   };
 
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = innerRef.current;
+    if (!el) return;
+
+    // If clicked directly on the container background/space below elements
+    if (e.target === el) {
+      const lastChild = el.lastElementChild;
+      if (
+        lastChild &&
+        (lastChild.tagName === "IMG" ||
+          lastChild.tagName === "FIGURE" ||
+          lastChild.tagName === "DIV" ||
+          lastChild.tagName === "TABLE")
+      ) {
+        let p = el.querySelector(":scope > p:last-child") as HTMLElement | null;
+        if (!p || p === lastChild) {
+          p = document.createElement("p");
+          p.innerHTML = "<br>";
+          el.appendChild(p);
+        }
+        const range = document.createRange();
+        range.setStart(p, 0);
+        range.collapse(true);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+        onChange(el.innerHTML);
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    onKeyDown?.(e);
+    if (e.key === "Enter" && !e.shiftKey) {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        let node: Node | null = range.commonAncestorContainer;
+        if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+        const isNearImg =
+          (node as HTMLElement)?.tagName === "IMG" ||
+          (node as HTMLElement)?.querySelector?.("img");
+        if (isNearImg) {
+          e.preventDefault();
+          const p = document.createElement("p");
+          p.innerHTML = "<br>";
+          const targetNode = (node as HTMLElement).tagName === "IMG" ? (node as HTMLElement) : (node as HTMLElement).querySelector("img")!;
+          if (targetNode.parentNode) {
+            targetNode.parentNode.insertBefore(p, targetNode.nextSibling);
+          } else {
+            innerRef.current?.appendChild(p);
+          }
+          const newRange = document.createRange();
+          newRange.setStart(p, 0);
+          newRange.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(newRange);
+          if (innerRef.current) {
+            onChange(innerRef.current.innerHTML);
+          }
+        }
+      }
+    }
+  };
+
   return (
     <div
       ref={innerRef}
       contentEditable
       suppressContentEditableWarning
       data-block-id={blockId}
+      data-field={field}
       onInput={handleInput}
+      onClick={handleClick}
       onCompositionStart={() => {
         isComposingRef.current = true;
       }}
@@ -240,7 +508,7 @@ function RichEditableBlock({
         handleInput(e);
       }}
       onPaste={handlePaste}
-      onKeyDown={onKeyDown}
+      onKeyDown={handleKeyDown}
       onFocus={(e) => {
         onFocus?.(e);
         onSelectionChange?.(e);
@@ -251,22 +519,12 @@ function RichEditableBlock({
       onKeyUp={onSelectionChange}
       onMouseUp={onSelectionChange}
       onSelect={onSelectionChange}
-      className={`${className} outline-none cursor-text`}
+      className={`${className} outline-none cursor-text relative`}
       style={style}
       data-placeholder={placeholder}
     />
   );
 }
-
-// Convert File to Base64
-const readFileAsBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = (error) => reject(error);
-    reader.readAsDataURL(file);
-  });
-};
 
 // Interactive Resizable Image Block Component
 interface ResizableImageBlockProps {
@@ -292,7 +550,6 @@ function ResizableImageBlock({
   const currentWidth = block.width || "100%";
   const currentAlign = block.align || "center";
 
-  // Handle Drag to Resize width
   const handleMouseDownResize = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -333,8 +590,8 @@ function ResizableImageBlock({
     currentAlign === "left"
       ? "mr-auto items-start text-left"
       : currentAlign === "right"
-      ? "ml-auto items-end text-right"
-      : "mx-auto items-center text-center";
+        ? "ml-auto items-end text-right"
+        : "mx-auto items-center text-center";
 
   return (
     <div
@@ -342,24 +599,43 @@ function ResizableImageBlock({
       style={{ width: currentWidth }}
       ref={containerRef}
     >
-      {/* Main Image Container */}
       <div className="relative w-full rounded-2xl overflow-hidden group/preview">
         <OptimizedImage
           src={block.url}
-          alt={block.caption || "Ảnh minh họa WebP"}
+          alt={block.caption || "WebP Image"}
           sizes="(max-width: 768px) 100vw, 1000px"
           containerClassName="w-full max-h-[520px] rounded-2xl"
           className="w-full max-h-[520px] object-cover rounded-2xl block mx-auto transition-transform duration-500 hover:scale-[1.005]"
         />
 
-        {/* Action Buttons (top right on hover) */}
+        {/* Loading Overlay (Black screen with animated loading indicator) */}
+        {block.isLoading && (
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-3 z-20 min-h-[220px] text-white p-4 animate-in fade-in duration-200">
+            <div className="relative flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full border-3 border-rose-500/20 border-t-rose-500 animate-spin" />
+              <span className="material-symbols-outlined absolute text-rose-400 text-lg animate-pulse">
+                upload
+              </span>
+            </div>
+            <div className="text-center space-y-1">
+              <div className="text-sm font-bold text-white tracking-wide">
+                Đang tải ảnh lên...
+              </div>
+              <div className="text-[11px] text-slate-400 font-medium">
+                Tối ưu hóa nén chuẩn WebP tốc độ cao
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="absolute top-3 right-3 opacity-0 group-hover/preview:opacity-100 flex items-center gap-1.5 backdrop-blur-md bg-slate-900/80 p-1 rounded-xl shadow-md transition-all z-10">
           {onPaste && (
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={onPaste}
               className="p-1.5 rounded-lg text-purple-300 hover:bg-purple-600 hover:text-white transition-all active:scale-95"
-              title="Dán ảnh thay thế từ clipboard (Ctrl+V)"
+              title="Paste image from clipboard (Ctrl+V)"
             >
               <span className="material-symbols-outlined text-[16px]">
                 content_paste
@@ -368,39 +644,39 @@ function ResizableImageBlock({
           )}
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={onReplace}
             className="p-1.5 rounded-lg text-sky-300 hover:bg-sky-600 hover:text-white transition-all active:scale-95"
-            title="Đổi ảnh từ máy tính"
+            title="Replace image from computer"
           >
             <span className="material-symbols-outlined text-[16px]">swap_horiz</span>
           </button>
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={onDelete}
             className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-600 hover:text-white transition-all active:scale-95"
-            title="Xóa ảnh"
+            title="Delete image"
           >
             <span className="material-symbols-outlined text-[16px]">delete</span>
           </button>
         </div>
 
-        {/* Corner Drag Resize Handle (Bottom-Right) */}
         <div
           onMouseDown={handleMouseDownResize}
           className="absolute bottom-2 right-2 w-6 h-6 rounded-lg bg-black/70 hover:bg-[#ff5167] text-white flex items-center justify-center cursor-nwse-resize shadow-md backdrop-blur-md opacity-0 group-hover/preview:opacity-100 transition-opacity z-10"
-          title="Kéo để thay đổi kích thước ảnh"
+          title="Drag to resize image"
         >
           <span className="material-symbols-outlined text-[14px]">drag_pan</span>
         </div>
       </div>
 
-      {/* Caption Input */}
       <div className="w-full mt-2 text-center">
         <input
           value={block.caption || ""}
           onChange={(e) => onUpdate({ caption: e.target.value })}
           className="w-full text-center bg-transparent text-xs text-slate-500 dark:text-[#a898be] italic outline-none hover:text-slate-700 dark:hover:text-[#e8dff1] focus:text-sky-600 dark:focus:text-[#4cd7f6] transition-colors"
-          placeholder="Nhập chú thích ảnh (.webp)..."
+          placeholder="Enter image caption (.webp)..."
         />
       </div>
     </div>
@@ -486,102 +762,104 @@ function ColumnImageResizable({
       >
         <OptimizedImage
           src={imageUrl}
-          alt={caption || "Ảnh cột"}
+          alt={caption || "Column Image"}
           containerClassName="w-full h-full rounded-2xl"
           className="w-full h-full object-cover rounded-2xl block mx-auto"
         />
 
-        {/* Action & Aspect Ratio Controls Overlay */}
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/colimg:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2 z-10">
           <div className="flex items-center gap-1.5 flex-wrap justify-center">
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={onUploadClick}
-              className="px-2.5 py-1 bg-sky-500 hover:bg-sky-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-md active:scale-95 transition-all"
-              title="Đổi ảnh từ máy tính"
+              className="px-2.5 py-1 bg-sky-500 hover:bg-sky-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-md active:scale-95 transition-all cursor-pointer"
+              title="Replace image from computer"
             >
               <span className="material-symbols-outlined text-[14px]">upload</span>
-              <span>Đổi</span>
+              <span>Replace</span>
             </button>
             {onPasteClick && (
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={onPasteClick}
-                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-md active:scale-95 transition-all"
-                title="Dán ảnh từ bộ nhớ tạm (Clipboard / Ctrl+V)"
+                className="px-2.5 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1 shadow-md active:scale-95 transition-all cursor-pointer"
+                title="Paste from clipboard (Ctrl+V)"
               >
                 <span className="material-symbols-outlined text-[14px]">
                   content_paste
                 </span>
-                <span>Dán</span>
+                <span>Paste</span>
               </button>
             )}
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={onDelete}
-              className="p-1 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs shadow-md active:scale-95 transition-all"
-              title="Xóa ảnh"
+              className="p-1 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs shadow-md active:scale-95 transition-all cursor-pointer"
+              title="Delete image"
             >
               <span className="material-symbols-outlined text-[14px]">delete</span>
             </button>
           </div>
 
-          {/* Quick Aspect Ratio Presets */}
           <div className="flex items-center gap-1 bg-black/70 backdrop-blur-md px-1.5 py-0.5 rounded-lg border border-white/10 text-[10px] text-white">
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onUpdate({ height: "auto" })}
-              className={`px-1.5 py-0.5 rounded font-medium transition-colors ${
-                currentRatio === "auto" && !isCustomPx
-                  ? "bg-rose-500 text-white"
-                  : "hover:bg-white/20 text-slate-200"
-              }`}
-              title="Tự động cân đối tỷ lệ"
+              className={`px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer ${currentRatio === "auto" && !isCustomPx
+                ? "bg-rose-500 text-white"
+                : "hover:bg-white/20 text-slate-200"
+                }`}
+              title="Auto balanced ratio"
             >
-              Tự động
+              Auto
             </button>
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onUpdate({ height: "4:3" })}
-              className={`px-1.5 py-0.5 rounded font-medium transition-colors ${
-                currentRatio === "4:3"
-                  ? "bg-rose-500 text-white"
-                  : "hover:bg-white/20 text-slate-200"
-              }`}
-              title="Tỷ lệ 4:3"
+              className={`px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer ${currentRatio === "4:3"
+                ? "bg-rose-500 text-white"
+                : "hover:bg-white/20 text-slate-200"
+                }`}
+              title="4:3 Ratio"
             >
               4:3
             </button>
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onUpdate({ height: "16:9" })}
-              className={`px-1.5 py-0.5 rounded font-medium transition-colors ${
-                currentRatio === "16:9"
-                  ? "bg-rose-500 text-white"
-                  : "hover:bg-white/20 text-slate-200"
-              }`}
-              title="Tỷ lệ 16:9"
+              className={`px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer ${currentRatio === "16:9"
+                ? "bg-rose-500 text-white"
+                : "hover:bg-white/20 text-slate-200"
+                }`}
+              title="16:9 Ratio"
             >
               16:9
             </button>
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onUpdate({ height: "1:1" })}
-              className={`px-1.5 py-0.5 rounded font-medium transition-colors ${
-                currentRatio === "1:1"
-                  ? "bg-rose-500 text-white"
-                  : "hover:bg-white/20 text-slate-200"
-              }`}
-              title="Tỷ lệ vuông 1:1"
+              className={`px-1.5 py-0.5 rounded font-medium transition-colors cursor-pointer ${currentRatio === "1:1"
+                ? "bg-rose-500 text-white"
+                : "hover:bg-white/20 text-slate-200"
+                }`}
+              title="1:1 Square"
             >
               1:1
             </button>
             {isCustomPx && (
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => onUpdate({ height: "auto" })}
-                className="px-1.5 py-0.5 rounded font-medium text-amber-300 hover:bg-white/20 flex items-center gap-0.5"
-                title="Khôi phục về tỷ lệ tự động"
+                className="px-1.5 py-0.5 rounded font-medium text-amber-300 hover:bg-white/20 flex items-center gap-0.5 cursor-pointer"
+                title="Reset to auto ratio"
               >
                 <span className="material-symbols-outlined text-[11px]">
                   restart_alt
@@ -592,11 +870,10 @@ function ColumnImageResizable({
           </div>
         </div>
 
-        {/* Drag Resize Handle */}
         <div
           onMouseDown={handleMouseDownResize}
           className="absolute bottom-2 right-2 w-6 h-6 rounded-lg bg-black/70 hover:bg-[#ff5167] text-white flex items-center justify-center cursor-ns-resize shadow-md backdrop-blur-md opacity-0 group-hover/colimg:opacity-100 transition-opacity z-20"
-          title="Kéo lên/xuống để chỉnh chiều cao ảnh"
+          title="Drag up/down to adjust image height"
         >
           <span className="material-symbols-outlined text-[14px]">height</span>
         </div>
@@ -605,12 +882,54 @@ function ColumnImageResizable({
   );
 }
 
-const LINE_HEIGHT_OPTIONS = [
-  { label: "Mặc định (1.6)", value: "1.6" },
-  { label: "Chặt chẽ (1.2)", value: "1.2" },
-  { label: "Vừa phải (1.4)", value: "1.4" },
-  { label: "Thoáng đãng (1.8)", value: "1.8" },
-  { label: "Rất rộng (2.0)", value: "2.0" },
+const FONT_SIZE_OPTIONS = [
+  { size: "12", label: "Small", value: "12px" },
+  { size: "14", label: "Compact", value: "14px" },
+  { size: "16", label: "Normal", value: "16px" },
+  { size: "18", label: "Medium", value: "18px" },
+  { size: "20", label: "Lead", value: "20px" },
+  { size: "24", label: "H3 Heading", value: "24px" },
+  { size: "28", label: "H2 Heading", value: "28px" },
+  { size: "34", label: "H1 Title", value: "34px" },
+];
+
+const FONT_FAMILY_OPTIONS = [
+  { name: "Inter", label: "Inter (Sans Modern)", desc: "Sans Modern", value: "var(--font-sans, Inter, sans-serif)" },
+  { name: "Playfair", label: "Playfair (Luxury Serif)", desc: "Luxury Serif", value: "var(--font-serif, 'Playfair Display', Georgia, serif)" },
+  { name: "Roboto", label: "Roboto (Clean Sans)", desc: "Clean Sans", value: "'Roboto', sans-serif" },
+  { name: "Montserrat", label: "Montserrat (Geometric)", desc: "Geometric", value: "'Montserrat', sans-serif" },
+  { name: "Mono", label: "Mono (Code Style)", desc: "Code Style", value: "ui-monospace, SFMono-Regular, monospace" },
+];
+
+const HEADING_OPTIONS = [
+  { level: 1, label: "H1", name: "Heading 1", desc: "Title / Main Headline", tag: "h1" },
+  { level: 2, label: "H2", name: "Heading 2", desc: "Section Header", tag: "h2" },
+  { level: 3, label: "H3", name: "Heading 3", desc: "Sub-section", tag: "h3" },
+  { level: 4, label: "H4", name: "Heading 4", desc: "Minor Heading", tag: "h4" },
+  { level: 5, label: "H5", name: "Heading 5", desc: "Small Sub-title", tag: "h5" },
+  { level: 6, label: "H6", name: "Heading 6", desc: "Paragraph Label", tag: "h6" },
+];
+
+const TEXT_COLOR_PALETTE = [
+  { label: "Default Dark", value: "#0f172a" },
+  { label: "Muted Gray", value: "#64748b" },
+  { label: "Signature Rose", value: "#e11d48" },
+  { label: "Vibrant Coral", value: "#ff5167" },
+  { label: "Ruby Red", value: "#dc2626" },
+  { label: "Warm Amber", value: "#d97706" },
+  { label: "Emerald Green", value: "#059669" },
+  { label: "Ocean Sky", value: "#0284c7" },
+  { label: "Royal Indigo", value: "#4f46e5" },
+  { label: "Purple Velvet", value: "#7c3aed" },
+];
+
+const HIGHLIGHT_COLOR_PALETTE = [
+  { label: "None / Clear", value: "transparent" },
+  { label: "Soft Yellow", value: "#fef08a" },
+  { label: "Pastel Pink", value: "#fecdd3" },
+  { label: "Fresh Green", value: "#bbf7d0" },
+  { label: "Sky Blue", value: "#bae6fd" },
+  { label: "Lavender", value: "#e9d5ff" },
 ];
 
 export interface BlogPostData {
@@ -619,7 +938,7 @@ export interface BlogPostData {
   slug: string;
   excerpt?: string;
   summary?: string;
-  content: string; // JSON blocks string or formatted text
+  content: string;
   blocks?: BlogBlock[];
   thumbnail?: string;
   coverImage?: string;
@@ -647,19 +966,19 @@ export default function AdminEditor({
   onExit,
 }: AdminEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
   const columnFileInputRef = useRef<HTMLInputElement>(null);
   const replaceImageFileInputRef = useRef<HTMLInputElement>(null);
-  const newCategoryInputRef = useRef<HTMLInputElement>(null);
 
   const [replaceTargetBlockId, setReplaceTargetBlockId] = useState<string | null>(null);
   const [columnUploadTarget, setColumnUploadTarget] = useState<{
     blockId: string;
     side: "left" | "right";
   } | null>(null);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
 
   const targetBlockIndexRef = useRef<number | null>(null);
-  const lastActiveIndexRef = useRef<number>(0);
   const savedSelectionRef = useRef<Range | null>(null);
 
   // Document Fields
@@ -682,18 +1001,6 @@ export default function AdminEditor({
   );
   const [tags, setTags] = useState<string[]>(postToEdit?.tags || []);
   const [newTagInput, setNewTagInput] = useState("");
-
-  const [customCategories, setCustomCategories] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem("xon_custom_categories");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [isAddingCategory, setIsAddingCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
 
   // Initial Blocks
   const getInitialBlocks = useCallback((): BlogBlock[] => {
@@ -725,10 +1032,9 @@ export default function AdminEditor({
           return parsed;
         }
       } catch {
-        // Plain text or markdown
         return [
           {
-            id: `block-init-${Date.now()}`,
+            id: "block-init-content",
             type: "paragraph",
             text: mdToHtml(postToEdit.content),
           },
@@ -736,10 +1042,15 @@ export default function AdminEditor({
       }
     }
 
-    return [{ id: `block-init-${Date.now()}`, type: "paragraph", text: "" }];
+    return [{ id: "block-init-1", type: "paragraph", text: "" }];
   }, [postToEdit]);
 
   const [blocks, setBlocks] = useState<BlogBlock[]>(getInitialBlocks);
+  const blocksRef = useRef<BlogBlock[]>(blocks);
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
+
   const [isPublic, setIsPublic] = useState(
     postToEdit?.status !== undefined
       ? postToEdit.status === "Published"
@@ -774,20 +1085,58 @@ export default function AdminEditor({
     }
   };
 
-  // Focus & Toolbar State
-  const [focusedBlockId, setFocusedBlockId] = useState<string | null>(null);
-  const inputRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
+  // Focus & Toolbar Active States
   const [isBoldActive, setIsBoldActive] = useState(false);
   const [isItalicActive, setIsItalicActive] = useState(false);
   const [isUnderlineActive, setIsUnderlineActive] = useState(false);
   const [isStrikethroughActive, setIsStrikethroughActive] = useState(false);
-  const [selectedFontSize, setSelectedFontSize] = useState("16");
-  const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
-  const [selectedLineHeight, setSelectedLineHeight] = useState("1.6");
-  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+  const [isSubscriptActive, setIsSubscriptActive] = useState(false);
+  const [isSuperscriptActive, setIsSuperscriptActive] = useState(false);
+  const [isBulletListActive, setIsBulletListActive] = useState(false);
+  const [isNumberedListActive, setIsNumberedListActive] = useState(false);
+  const [selectedFontSize, setSelectedFontSize] = useState("16px");
+  const [selectedFontFamily, setSelectedFontFamily] = useState("Inter");
+  const [textAlign, setTextAlign] = useState<"left" | "center" | "right" | "justify">("left");
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+
+  const toggleDropdown = (name: string, e: React.MouseEvent<HTMLElement>) => {
+    e.preventDefault();
+    if (activeDropdown === name) {
+      setActiveDropdown(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 4,
+        left: Math.max(8, Math.min(rect.left, (typeof window !== "undefined" ? window.innerWidth : 1200) - 240)),
+      });
+      setActiveDropdown(name);
+    }
+  };
+
+  const closeAllDropdowns = () => {
+    setActiveDropdown(null);
+  };
+
+  const isTextColorPickerOpen = activeDropdown === "textColor";
+  const isHighlightPickerOpen = activeDropdown === "highlight";
+  const isFontSizeDropdownOpen = activeDropdown === "fontSize";
+  const isFontFamilyDropdownOpen = activeDropdown === "fontFamily";
+  const isHeadingDropdownOpen = activeDropdown === "heading";
+  const isVideoDropdownOpen = activeDropdown === "video";
+
+  const [selectedHeadingLevel, setSelectedHeadingLevel] = useState<number>(2);
   const [customColorHex, setCustomColorHex] = useState("#ff5167");
   const [isSaving, setIsSaving] = useState(false);
+  const summaryTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize summary textarea to display full content without scrollbars
+  useEffect(() => {
+    if (summaryTextareaRef.current) {
+      summaryTextareaRef.current.style.height = "auto";
+      summaryTextareaRef.current.style.height = `${summaryTextareaRef.current.scrollHeight}px`;
+    }
+  }, [summary]);
 
   // Modals
   const [promptModal, setPromptModal] = useState<PromptModalProps>({
@@ -796,23 +1145,23 @@ export default function AdminEditor({
     description: "",
     placeholder: "",
     defaultValue: "",
-    confirmText: "Xác nhận",
-    cancelText: "Hủy bỏ",
+    confirmText: "Confirm",
+    cancelText: "Cancel",
     icon: "link",
     iconColor: "sky",
-    onConfirm: () => {},
-    onCancel: () => {},
+    onConfirm: () => { },
+    onCancel: () => { },
   });
 
   const openPrompt = (props: Partial<PromptModalProps>) => {
     setPromptModal({
       isOpen: true,
-      title: props.title || "Nhập thông tin",
+      title: props.title || "Enter Information",
       description: props.description || "",
       placeholder: props.placeholder || "https://...",
       defaultValue: props.defaultValue || "",
-      confirmText: props.confirmText || "Xác nhận",
-      cancelText: props.cancelText || "Hủy bỏ",
+      confirmText: props.confirmText || "Confirm",
+      cancelText: props.cancelText || "Cancel",
       icon: props.icon || "link",
       iconColor: props.iconColor || "sky",
       onConfirm: (val: string) => {
@@ -825,15 +1174,297 @@ export default function AdminEditor({
     });
   };
 
-  // Cover image upload
-  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  // Selection & Active State Tracking
+  const saveCurrentSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      let container: Node | null = range.commonAncestorContainer;
+      if (container.nodeType === Node.TEXT_NODE) {
+        container = container.parentElement;
+      }
+      // ONLY update savedSelection if inside an editable content block in our editor
+      if (container && (container as HTMLElement).closest?.("[contenteditable='true'], [data-block-id], input, textarea")) {
+        savedSelectionRef.current = range.cloneRange();
+        const blockEl = (container as HTMLElement).closest?.("[data-block-id]") as HTMLElement | null;
+        if (blockEl) {
+          const blockId = blockEl.getAttribute("data-block-id");
+          if (blockId) {
+            const foundIdx = blocksRef.current.findIndex((b) => b.id === blockId);
+            if (foundIdx !== -1) {
+              targetBlockIndexRef.current = foundIdx;
+            }
+          }
+        }
+      }
+    }
+  }, []);
+
+  const restoreSavedSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (sel && savedSelectionRef.current) {
+      sel.removeAllRanges();
+      sel.addRange(savedSelectionRef.current);
+    }
+  }, []);
+
+  const updateToolbarActiveStates = useCallback(() => {
+    try {
+      setIsBoldActive(document.queryCommandState("bold"));
+      setIsItalicActive(document.queryCommandState("italic"));
+      setIsUnderlineActive(document.queryCommandState("underline"));
+      setIsStrikethroughActive(document.queryCommandState("strikeThrough"));
+      setIsSubscriptActive(document.queryCommandState("subscript"));
+      setIsSuperscriptActive(document.queryCommandState("superscript"));
+      setIsBulletListActive(document.queryCommandState("insertUnorderedList"));
+      setIsNumberedListActive(document.queryCommandState("insertOrderedList"));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleSelectionOrFocusChange = useCallback(() => {
+    saveCurrentSelection();
+    updateToolbarActiveStates();
+  }, [saveCurrentSelection, updateToolbarActiveStates]);
+
+  useEffect(() => {
+    const onDocSelectionChange = () => {
+      handleSelectionOrFocusChange();
+    };
+    document.addEventListener("selectionchange", onDocSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", onDocSelectionChange);
+    };
+  }, [handleSelectionOrFocusChange]);
+
+  // Sync ContentEditable DOM into React Blocks State
+  const syncActiveBlockContent = useCallback(() => {
+    const sel = window.getSelection();
+    let container: Node | null = null;
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      container = range.commonAncestorContainer;
+    } else if (savedSelectionRef.current) {
+      container = savedSelectionRef.current.commonAncestorContainer;
+    }
+    if (container && container.nodeType === Node.TEXT_NODE) {
+      container = container.parentElement;
+    }
+    const editableEl = (container as HTMLElement)?.closest?.("[data-block-id]") as HTMLElement | null;
+    if (editableEl) {
+      const blockId = editableEl.getAttribute("data-block-id");
+      const field = editableEl.getAttribute("data-field");
+      if (blockId) {
+        const newHtml = editableEl.innerHTML;
+        const isCleanEmpty = !newHtml || newHtml === "<br>" || newHtml === "<p><br></p>";
+        const finalHtml = isCleanEmpty ? "" : newHtml;
+
+        setBlocks((prev) =>
+          prev.map((b) => {
+            if (b.id !== blockId) return b;
+            if (field === "left") return { ...b, leftText: finalHtml };
+            if (field === "right") return { ...b, rightText: finalHtml };
+            return { ...b, text: finalHtml };
+          })
+        );
+      }
+    }
+  }, []);
+
+  // Text formatting executor on highlighted (selected) text
+  const executeCommand = (cmd: string, val: string | undefined = undefined) => {
+    restoreSavedSelection();
+    document.execCommand("styleWithCSS", false, "true");
+    document.execCommand(cmd, false, val);
+    saveCurrentSelection();
+    updateToolbarActiveStates();
+    syncActiveBlockContent();
+  };
+
+  // Apply Font Size to Selected Text
+  const applyFontSizeToSelection = (size: string) => {
+    restoreSavedSelection();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+      setSelectedFontSize(size);
+      closeAllDropdowns();
+      return;
+    }
+
+    const range = sel.getRangeAt(0);
+    const selectedHtml = range.cloneContents();
+    const span = document.createElement("span");
+    span.style.fontSize = size;
+    span.appendChild(selectedHtml);
+
+    range.deleteContents();
+    range.insertNode(span);
+
+    // Re-select inserted span content
+    const newRange = document.createRange();
+    newRange.selectNodeContents(span);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    savedSelectionRef.current = newRange;
+
+    setSelectedFontSize(size);
+    closeAllDropdowns();
+    syncActiveBlockContent();
+  };
+
+  // Apply Font Family to Selected Text
+  const applyFontFamilyToSelection = (fontCss: string, fontName: string) => {
+    restoreSavedSelection();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+      setSelectedFontFamily(fontName);
+      closeAllDropdowns();
+      return;
+    }
+
+    const range = sel.getRangeAt(0);
+    const selectedHtml = range.cloneContents();
+    const span = document.createElement("span");
+    span.style.fontFamily = fontCss;
+    span.appendChild(selectedHtml);
+
+    range.deleteContents();
+    range.insertNode(span);
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(span);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    savedSelectionRef.current = newRange;
+
+    setSelectedFontFamily(fontName);
+    closeAllDropdowns();
+    syncActiveBlockContent();
+  };
+
+  // Apply Text Color (Foreground)
+  const applyTextColorToSelection = (color: string) => {
+    restoreSavedSelection();
+    document.execCommand("styleWithCSS", false, "true");
+    document.execCommand("foreColor", false, color);
+    closeAllDropdowns();
+    syncActiveBlockContent();
+  };
+
+  // Apply Highlight / Background Color
+  const applyHighlightColorToSelection = (color: string) => {
+    restoreSavedSelection();
+    document.execCommand("styleWithCSS", false, "true");
+    if (color === "transparent") {
+      document.execCommand("removeFormat", false, undefined);
+    } else {
+      document.execCommand("hiliteColor", false, color);
+    }
+    closeAllDropdowns();
+    syncActiveBlockContent();
+  };
+
+  // Apply Inline Code Tag to Highlighted Text
+  const applyInlineCodeToSelection = () => {
+    restoreSavedSelection();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    const range = sel.getRangeAt(0);
+    const selectedHtml = range.cloneContents();
+    const code = document.createElement("code");
+    code.className =
+      "bg-slate-100 dark:bg-[#2c2835] text-rose-600 dark:text-[#ff5167] px-1.5 py-0.5 rounded text-sm font-mono border border-slate-200 dark:border-transparent";
+    code.appendChild(selectedHtml);
+
+    range.deleteContents();
+    range.insertNode(code);
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(code);
+    sel.removeAllRanges();
+    sel.addRange(newRange);
+    savedSelectionRef.current = newRange;
+
+    syncActiveBlockContent();
+  };
+
+  // Clear Formatting on Highlighted Text
+  const applyClearFormatting = () => {
+    restoreSavedSelection();
+    document.execCommand("removeFormat", false, undefined);
+    document.execCommand("unlink", false, undefined);
+    syncActiveBlockContent();
+  };
+
+  // Apply Hyperlink to Selected Text or Insert Link
+  const applyLinkToSelection = (url: string) => {
+    if (!url) return;
+    restoreSavedSelection();
+    const sel = window.getSelection();
+
+    let range: Range | null = null;
+    if (sel && sel.rangeCount > 0) {
+      range = sel.getRangeAt(0);
+    } else if (savedSelectionRef.current) {
+      range = savedSelectionRef.current;
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+
+    if (!range) return;
+
+    if (!range.collapsed) {
+      const selectedHtml = range.cloneContents();
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "text-rose-600 dark:text-rose-400 hover:underline font-medium cursor-pointer";
+      a.appendChild(selectedHtml);
+
+      range.deleteContents();
+      range.insertNode(a);
+
+      const newRange = document.createRange();
+      newRange.selectNode(a);
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      }
+      savedSelectionRef.current = newRange;
+    } else {
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "text-rose-600 dark:text-rose-400 hover:underline font-medium cursor-pointer";
+      a.textContent = url;
+
+      range.insertNode(a);
+
+      const newRange = document.createRange();
+      newRange.setStartAfter(a);
+      newRange.setEndAfter(a);
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      }
+      savedSelectionRef.current = newRange;
+    }
+
+    syncActiveBlockContent();
+  };
 
   // Upload image handler to /api/upload
   const uploadImageToServer = async (file: File): Promise<string> => {
     try {
       const compressed = await compressImageFile(file, {
-        maxWidth: 1600,
-        quality: 0.85,
+        maxWidth: 1400,
+        maxHeight: 1400,
+        quality: 0.82,
       });
       const formData = new FormData();
       formData.append("file", compressed.blob, file.name || "image.webp");
@@ -849,16 +1480,96 @@ export default function AdminEditor({
           return json.data.url;
         }
       }
-      // fallback to base64
       return compressed.base64;
     } catch {
       return await readFileAsBase64(file);
     }
   };
 
+  // Upload video handler to /api/upload
+  const uploadVideoToServer = async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file, file.name || "video.mp4");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data?.url) {
+          return json.data.url;
+        }
+      }
+      return await readFileAsBase64(file);
+    } catch {
+      return await readFileAsBase64(file);
+    }
+  };
+
+  // Apply Heading Level to Current Block or Highlighted Text
+  const applyHeadingToSelection = (level: number) => {
+    setSelectedHeadingLevel(level);
+    closeAllDropdowns();
+
+    restoreSavedSelection();
+
+    // If we have an active target block
+    if (targetBlockIndexRef.current !== null && blocks[targetBlockIndexRef.current]) {
+      const activeIdx = targetBlockIndexRef.current;
+      const activeBlock = blocks[activeIdx];
+
+      if (activeBlock && (activeBlock.type === "paragraph" || activeBlock.type === "heading")) {
+        if (activeBlock.id) {
+          updateBlock(activeBlock.id, { type: "heading", level });
+          return;
+        }
+      }
+    }
+
+    // Otherwise insert new heading block at current position
+    addBlock("heading", undefined, level);
+  };
+
+  // Apply Alignment to Selection and Current Block
+  const applyAlignmentToSelection = (align: "left" | "center" | "right" | "justify") => {
+    setTextAlign(align);
+    const cmd =
+      align === "left"
+        ? "justifyLeft"
+        : align === "center"
+        ? "justifyCenter"
+        : align === "right"
+        ? "justifyRight"
+        : "justifyFull";
+    executeCommand(cmd);
+
+    if (targetBlockIndexRef.current !== null && blocks[targetBlockIndexRef.current]) {
+      const activeBlock = blocks[targetBlockIndexRef.current];
+      if (activeBlock?.id) {
+        updateBlock(activeBlock.id, { align });
+      }
+    }
+  };
+
   // Block Manipulation Handlers
-  const addBlock = (type: BlogBlock["type"], targetIdx?: number) => {
-    const idx = targetIdx !== undefined ? targetIdx : blocks.length;
+  const addBlock = (type: BlogBlock["type"], targetIdx?: number, level?: number) => {
+    let currentIdx = targetIdx !== undefined ? targetIdx : targetBlockIndexRef.current;
+    if (currentIdx === null || currentIdx === undefined || currentIdx < 0 || currentIdx >= blocks.length) {
+      currentIdx = blocks.length - 1;
+    }
+
+    const currentBlock = blocks[currentIdx];
+    const isCurrentEmptyParagraph =
+      currentBlock &&
+      currentBlock.type === "paragraph" &&
+      (!currentBlock.text ||
+        currentBlock.text.trim() === "" ||
+        currentBlock.text === "<br>" ||
+        currentBlock.text === "<p><br></p>");
+
     let newBlock: BlogBlock = {
       id: `block-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       type,
@@ -867,6 +1578,7 @@ export default function AdminEditor({
     if (type === "heading") {
       newBlock.text = "";
       newBlock.align = "left";
+      newBlock.level = level || selectedHeadingLevel || 2;
     } else if (type === "paragraph") {
       newBlock.text = "";
       newBlock.align = "left";
@@ -877,10 +1589,10 @@ export default function AdminEditor({
       newBlock.listType = "bullet";
       newBlock.items = [""];
     } else if (type === "table") {
-      newBlock.headers = ["Tiêu đề 1", "Tiêu đề 2", "Tiêu đề 3"];
+      newBlock.headers = ["Header 1", "Header 2", "Header 3"];
       newBlock.rows = [
-        ["Dữ liệu 1", "Dữ liệu 2", "Dữ liệu 3"],
-        ["Dữ liệu 4", "Dữ liệu 5", "Dữ liệu 6"],
+        ["Data 1", "Data 2", "Data 3"],
+        ["Data 4", "Data 5", "Data 6"],
       ];
     } else if (type === "code") {
       newBlock.code = "";
@@ -892,13 +1604,63 @@ export default function AdminEditor({
       newBlock.rightText = "";
     }
 
+    // Always create a follow-up paragraph block underneath for rich blocks (quote, table, columns, video, code, divider)
+    const needsFollowUpParagraph = ["quote", "table", "columns", "video", "code", "divider"].includes(type);
+
+    const followUpParagraphId = `block-${Date.now() + 1}-${Math.random().toString(36).substring(2, 6)}`;
+    const followUpParagraph: BlogBlock = {
+      id: followUpParagraphId,
+      type: "paragraph",
+      text: "",
+      align: "left",
+    };
+
     const nextBlocks = [...blocks];
-    nextBlocks.splice(idx, 0, newBlock);
+
+    if (isCurrentEmptyParagraph) {
+      if (needsFollowUpParagraph) {
+        nextBlocks.splice(currentIdx, 1, newBlock, followUpParagraph);
+        targetBlockIndexRef.current = currentIdx;
+      } else {
+        nextBlocks.splice(currentIdx, 1, newBlock);
+        targetBlockIndexRef.current = currentIdx;
+      }
+    } else {
+      const insertIdx = currentIdx + 1;
+      if (needsFollowUpParagraph) {
+        nextBlocks.splice(insertIdx, 0, newBlock, followUpParagraph);
+        targetBlockIndexRef.current = insertIdx;
+      } else {
+        nextBlocks.splice(insertIdx, 0, newBlock);
+        targetBlockIndexRef.current = insertIdx;
+      }
+    }
+
     pushHistory(nextBlocks);
-    setFocusedBlockId(newBlock.id || null);
+
+    // Auto-focus the newly created block
+    setTimeout(() => {
+      if (type === "quote") {
+        const quoteInput = document.querySelector(
+          `[data-block-id="${newBlock.id}"] textarea, [data-block-id="${newBlock.id}"] input`
+        ) as HTMLElement;
+        quoteInput?.focus();
+      } else if (type === "table") {
+        const firstCell = document.querySelector(
+          `[data-block-id="${newBlock.id}"] input`
+        ) as HTMLElement;
+        firstCell?.focus();
+      } else if (type === "paragraph" || type === "heading") {
+        const el = document.querySelector(
+          `[data-block-id="${newBlock.id}"] [contenteditable="true"]`
+        ) as HTMLElement;
+        el?.focus();
+      }
+    }, 50);
   };
 
-  const updateBlock = (blockId: string, updates: Partial<BlogBlock>) => {
+  const updateBlock = (blockId: string | undefined, updates: Partial<BlogBlock>) => {
+    if (!blockId) return;
     const next = blocks.map((b) => (b.id === blockId ? { ...b, ...updates } : b));
     setBlocks(next);
   };
@@ -921,52 +1683,144 @@ export default function AdminEditor({
     pushHistory(next);
   };
 
-  // Text formatting
-  const executeCommand = (cmd: string, val: string | undefined = undefined) => {
-    document.execCommand(cmd, false, val);
-    updateToolbarActiveStates();
-  };
-
-  const updateToolbarActiveStates = () => {
-    try {
-      setIsBoldActive(document.queryCommandState("bold"));
-      setIsItalicActive(document.queryCommandState("italic"));
-      setIsUnderlineActive(document.queryCommandState("underline"));
-      setIsStrikethroughActive(document.queryCommandState("strikeThrough"));
-    } catch {
-      // ignore
-    }
-  };
-
   // Handle image upload from computer
   const handleImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const tempImgId = `img-${Date.now()}`;
+    const previewUrl = URL.createObjectURL(file);
+    const newParagraphId = `block-${Date.now() + 1}`;
+
+    const newImgBlock: BlogBlock = {
+      id: tempImgId,
+      type: "image",
+      url: previewUrl,
+      caption: "",
+      width: "100%",
+      align: "center",
+      isLoading: true,
+    };
+
+    const newParagraphBlock: BlogBlock = {
+      id: newParagraphId,
+      type: "paragraph",
+      text: "",
+      align: "left",
+    };
+
+    let currentIdx = targetBlockIndexRef.current;
+    if (currentIdx === null || currentIdx === undefined || currentIdx < 0 || currentIdx >= blocks.length) {
+      currentIdx = blocks.length - 1;
+    }
+
+    const currentBlock = blocks[currentIdx];
+    const isCurrentEmptyParagraph =
+      currentBlock &&
+      currentBlock.type === "paragraph" &&
+      (!currentBlock.text ||
+        currentBlock.text.trim() === "" ||
+        currentBlock.text === "<br>" ||
+        currentBlock.text === "<p><br></p>");
+
+    const next = [...blocks];
+    if (isCurrentEmptyParagraph) {
+      next.splice(currentIdx, 1, newImgBlock, newParagraphBlock);
+      targetBlockIndexRef.current = currentIdx + 1;
+    } else {
+      next.splice(currentIdx + 1, 0, newImgBlock, newParagraphBlock);
+      targetBlockIndexRef.current = currentIdx + 2;
+    }
+
+    pushHistory(next);
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    setTimeout(() => {
+      const el = document.querySelector(`[data-block-id="${newParagraphId}"]`) as HTMLElement;
+      el?.focus();
+    }, 50);
+
     try {
-      const url = await uploadImageToServer(file);
-      const newBlock: BlogBlock = {
-        id: `img-${Date.now()}`,
-        type: "image",
-        url,
-        caption: "",
-        width: "100%",
-        align: "center",
-      };
-      const idx =
-        targetBlockIndexRef.current !== null
-          ? targetBlockIndexRef.current + 1
-          : blocks.length;
-      const next = [...blocks];
-      next.splice(idx, 0, newBlock);
-      pushHistory(next);
+      const finalUrl = await uploadImageToServer(file);
+      updateBlock(tempImgId, { url: finalUrl, isLoading: false });
     } catch (err) {
       console.error("Upload error", err);
+      updateBlock(tempImgId, { isLoading: false });
+    }
+  };
+
+  // Handle video upload from computer
+  const handleVideoFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const tempVidId = `vid-${Date.now()}`;
+    const previewUrl = URL.createObjectURL(file);
+    const newParagraphId = `block-${Date.now() + 1}`;
+
+    const newVidBlock: BlogBlock = {
+      id: tempVidId,
+      type: "video",
+      url: previewUrl,
+      caption: "",
+      isLoading: true,
+    };
+
+    const newParagraphBlock: BlogBlock = {
+      id: newParagraphId,
+      type: "paragraph",
+      text: "",
+      align: "left",
+    };
+
+    let currentIdx = targetBlockIndexRef.current;
+    if (currentIdx === null || currentIdx === undefined || currentIdx < 0 || currentIdx >= blocks.length) {
+      currentIdx = blocks.length - 1;
+    }
+
+    const currentBlock = blocks[currentIdx];
+    const isCurrentEmptyParagraph =
+      currentBlock &&
+      currentBlock.type === "paragraph" &&
+      (!currentBlock.text ||
+        currentBlock.text.trim() === "" ||
+        currentBlock.text === "<br>" ||
+        currentBlock.text === "<p><br></p>");
+
+    const next = [...blocks];
+    if (isCurrentEmptyParagraph) {
+      next.splice(currentIdx, 1, newVidBlock, newParagraphBlock);
+      targetBlockIndexRef.current = currentIdx + 1;
+    } else {
+      next.splice(currentIdx + 1, 0, newVidBlock, newParagraphBlock);
+      targetBlockIndexRef.current = currentIdx + 2;
+    }
+
+    pushHistory(next);
+
+    if (videoFileInputRef.current) videoFileInputRef.current.value = "";
+
+    setTimeout(() => {
+      const el = document.querySelector(`[data-block-id="${newParagraphId}"]`) as HTMLElement;
+      el?.focus();
+    }, 50);
+
+    setIsUploadingVideo(true);
+    try {
+      const finalUrl = await uploadVideoToServer(file);
+      updateBlock(tempVidId, { url: finalUrl, isLoading: false });
+    } catch (err) {
+      console.error("Video upload error", err);
+      updateBlock(tempVidId, { isLoading: false });
+      alert("Không thể tải video lên, vui lòng thử lại!");
     } finally {
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      setIsUploadingVideo(false);
     }
   };
 
   // Handle Cover Image Upload
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -985,7 +1839,7 @@ export default function AdminEditor({
   // Save document
   const handleSaveDocument = async () => {
     if (!title.trim()) {
-      alert("Vui lòng nhập tiêu đề bài viết!");
+      alert("Please enter an article title!");
       return;
     }
 
@@ -1026,27 +1880,11 @@ export default function AdminEditor({
       }
     } catch (err) {
       console.error("Save error", err);
-      alert("Có lỗi xảy ra khi lưu bài viết.");
+      alert("An error occurred while saving the article.");
     } finally {
       setIsSaving(false);
     }
   };
-
-  // Metrics
-  const fullText = `${title} ${summary} ${blocks
-    .map((b) =>
-      b.type === "columns"
-        ? `${b.leftText || ""} ${b.rightText || ""}`
-        : b.text || ""
-    )
-    .join(" ")}`
-    .replace(/<[^>]+>/g, "")
-    .trim();
-  const wordCount = fullText ? fullText.split(/\s+/).filter(Boolean).length : 0;
-  const readTimeMinutes = wordCount > 0 ? (wordCount / 200).toFixed(1) : "0";
-  const headingsCount = blocks.filter((b) => b.type === "heading").length;
-  const imageBlocksCount =
-    blocks.filter((b) => b.type === "image").length + (coverImage ? 1 : 0);
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-[#100c18] text-slate-900 dark:text-[#e8dff1] transition-colors pb-20">
@@ -1057,6 +1895,13 @@ export default function AdminEditor({
         accept="image/*"
         className="hidden"
         onChange={handleImageFileSelect}
+      />
+      <input
+        ref={videoFileInputRef}
+        type="file"
+        accept="video/mp4,video/webm,video/ogg,video/quicktime,video/*"
+        className="hidden"
+        onChange={handleVideoFileSelect}
       />
       <input
         ref={coverFileInputRef}
@@ -1073,11 +1918,18 @@ export default function AdminEditor({
         onChange={async (e) => {
           const file = e.target.files?.[0];
           if (!file || !replaceTargetBlockId) return;
-          const url = await uploadImageToServer(file);
-          updateBlock(replaceTargetBlockId, { url });
+          const targetId = replaceTargetBlockId;
+          const previewUrl = URL.createObjectURL(file);
+          updateBlock(targetId, { url: previewUrl, isLoading: true });
           setReplaceTargetBlockId(null);
           if (replaceImageFileInputRef.current)
             replaceImageFileInputRef.current.value = "";
+          try {
+            const url = await uploadImageToServer(file);
+            updateBlock(targetId, { url, isLoading: false });
+          } catch {
+            updateBlock(targetId, { isLoading: false });
+          }
         }}
       />
       <input
@@ -1088,80 +1940,629 @@ export default function AdminEditor({
         onChange={async (e) => {
           const file = e.target.files?.[0];
           if (!file || !columnUploadTarget) return;
-          const url = await uploadImageToServer(file);
           const { blockId, side } = columnUploadTarget;
+          const previewUrl = URL.createObjectURL(file);
           if (side === "left") {
-            updateBlock(blockId, { leftImageUrl: url, leftType: "image" });
+            updateBlock(blockId, { leftImageUrl: previewUrl, leftType: "image" });
           } else {
-            updateBlock(blockId, { rightImageUrl: url, rightType: "image" });
+            updateBlock(blockId, { rightImageUrl: previewUrl, rightType: "image" });
           }
           setColumnUploadTarget(null);
           if (columnFileInputRef.current) columnFileInputRef.current.value = "";
+          try {
+            const url = await uploadImageToServer(file);
+            if (side === "left") {
+              updateBlock(blockId, { leftImageUrl: url });
+            } else {
+              updateBlock(blockId, { rightImageUrl: url });
+            }
+          } catch {
+            // Keep preview URL
+          }
         }}
       />
 
-      {/* Top Navbar */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#15111d]/95 backdrop-blur-md border-b border-slate-200 dark:border-[#2c2835] px-4 py-3 shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      {/* Top Navigation Header (Row 1) & Formatting Toolbar (Row 2) */}
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#15111d]/95 backdrop-blur-md border-b border-slate-200 dark:border-[#2c2835] px-3 sm:px-4 py-1.5 shadow-xs overflow-visible">
+        {/* Transparent Backdrop to close any open dropdowns when clicking outside */}
+        {activeDropdown && (
+          <div
+            className="fixed inset-0 z-[9990]"
+            onClick={closeAllDropdowns}
+          />
+        )}
+
+        {/* Row 1: Navigation, Article Info & Publish/Save Actions */}
+        <div className="w-full flex items-center justify-between gap-3 pb-1.5 border-b border-slate-100 dark:border-white/5 relative z-40">
+          {/* Left: Back & Title/Status */}
+          <div className="flex items-center gap-2 min-w-0">
             {onExit && (
               <button
                 type="button"
                 onClick={onExit}
-                className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors flex items-center gap-1.5 text-xs font-semibold"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer shrink-0"
               >
-                <span className="material-symbols-outlined text-[18px]">
-                  arrow_back
-                </span>
-                <span className="hidden sm:inline">Quay lại</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                <span className="hidden sm:inline">Back</span>
               </button>
             )}
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-[#a898be]">
-                Trình soạn thảo bài viết Rich Editor
-              </span>
-            </div>
+
+            <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0" />
+
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+              {title || "Untitled Article"}
+            </span>
+
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                isPublic
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                  : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+              }`}
+            >
+              {isPublic ? "Published" : "Draft"}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Undo / Redo */}
-            <div className="flex items-center bg-slate-100 dark:bg-[#1f1a29] rounded-xl p-1 border border-slate-200 dark:border-[#2c2835]">
-              <button
-                type="button"
-                onClick={handleUndo}
-                disabled={historyIndex <= 0}
-                className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 rounded-lg hover:bg-white dark:hover:bg-white/10 transition-colors"
-                title="Hoàn tác (Undo)"
-              >
-                <span className="material-symbols-outlined text-[18px]">undo</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleRedo}
-                disabled={historyIndex >= history.length - 1}
-                className="p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 rounded-lg hover:bg-white dark:hover:bg-white/10 transition-colors"
-                title="Làm lại (Redo)"
-              >
-                <span className="material-symbols-outlined text-[18px]">redo</span>
-              </button>
-            </div>
-
-            {/* Save Button */}
+          {/* Right: Save / Publish */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Save & Publish Button */}
             <button
               type="button"
               onClick={handleSaveDocument}
               disabled={isSaving}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-rose-500/25 flex items-center gap-2 disabled:opacity-50 transition-all cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer whitespace-nowrap"
             >
               {isSaving ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <span className="material-symbols-outlined text-[18px]">
-                  publish
-                </span>
+                <span className="material-symbols-outlined text-[15px]">publish</span>
               )}
-              <span>{isPublic ? "Xuất bản bài viết" : "Lưu bản nháp"}</span>
+              <span>{isPublic ? "Publish" : "Save Draft"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Formatting Toolbar (Single Compact Row with Horizontal Scroll) */}
+        <div
+          className="w-full flex items-center gap-0.5 sm:gap-1 pt-1 pb-1 overflow-x-auto scrollbar-none relative z-40 flex-nowrap"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {/* Font Family Dropdown */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveCurrentSelection();
+              }}
+              onClick={(e) => toggleDropdown("fontFamily", e)}
+              className={`px-1.5 py-0.5 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors cursor-pointer ${
+                isFontFamilyDropdownOpen
+                  ? "bg-rose-500 text-white shadow-xs"
+                  : "bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200"
+              }`}
+              title="Font Family"
+            >
+              <span className="font-medium text-xs max-w-[56px] truncate">{selectedFontFamily}</span>
+              <span className="material-symbols-outlined text-[13px]">arrow_drop_down</span>
+            </button>
+            {isFontFamilyDropdownOpen && (
+              <div
+                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+                className="w-48 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
+              >
+                {FONT_FAMILY_OPTIONS.map((f) => {
+                  const isSelected =
+                    selectedFontFamily === f.name || selectedFontFamily === f.label.split(" ")[0];
+                  return (
+                    <button
+                      key={f.label}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => applyFontFamilyToSelection(f.value, f.name)}
+                      className={`w-full text-left px-2 py-1.5 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
+                        isSelected
+                          ? "bg-rose-500 text-white font-bold"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600"
+                      }`}
+                    >
+                      <span style={{ fontFamily: f.value }} className="font-medium">
+                        {f.name}
+                      </span>
+                      <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-slate-400"}`}>
+                        {f.desc}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Font Size Dropdown */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveCurrentSelection();
+              }}
+              onClick={(e) => toggleDropdown("fontSize", e)}
+              className={`px-1.5 py-0.5 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors cursor-pointer ${
+                isFontSizeDropdownOpen
+                  ? "bg-rose-500 text-white shadow-xs"
+                  : "bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200"
+              }`}
+              title="Font Size"
+            >
+              <span className="material-symbols-outlined text-[13px]">format_size</span>
+              <span className="font-bold min-w-3 text-center text-xs">
+                {String(selectedFontSize).replace(/[^0-9]/g, "") || "16"}
+              </span>
+              <span className="material-symbols-outlined text-[13px]">arrow_drop_down</span>
+            </button>
+            {isFontSizeDropdownOpen && (
+              <div
+                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+                className="w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
+              >
+                {FONT_SIZE_OPTIONS.map((opt) => {
+                  const currentNum = String(selectedFontSize).replace(/[^0-9]/g, "");
+                  const isSelected = currentNum === opt.size || selectedFontSize === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => applyFontSizeToSelection(opt.value)}
+                      className={`w-full text-left px-2 py-1.5 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
+                        isSelected
+                          ? "bg-rose-500 text-white font-bold"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600"
+                      }`}
+                    >
+                      <span className="font-bold">{opt.size}</span>
+                      <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-slate-400"}`}>
+                        {opt.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Heading Level Dropdown (H1 - H6) */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => toggleDropdown("heading", e)}
+              className={`px-1.5 py-0.5 rounded text-xs font-bold flex items-center gap-0.5 transition-colors cursor-pointer ${
+                isHeadingDropdownOpen
+                  ? "bg-rose-500 text-white shadow-xs"
+                  : "bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200"
+              }`}
+              title="Choose Heading Level (H1 - H6)"
+            >
+              <span className="material-symbols-outlined text-[13px]">title</span>
+              <span className="text-xs">H{selectedHeadingLevel}</span>
+              <span className="material-symbols-outlined text-[12px]">arrow_drop_down</span>
+            </button>
+            {isHeadingDropdownOpen && (
+              <div
+                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+                className="w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-72 overflow-y-auto"
+              >
+                {HEADING_OPTIONS.map((h) => {
+                  const isSelected = selectedHeadingLevel === h.level;
+                  return (
+                    <button
+                      key={h.level}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => applyHeadingToSelection(h.level)}
+                      className={`w-full text-left px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2 ${
+                        isSelected
+                          ? "bg-rose-500 text-white font-bold"
+                          : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600"
+                      }`}
+                    >
+                      <span
+                        className={`font-mono font-bold text-[11px] px-1.5 py-0.5 rounded ${
+                          isSelected
+                            ? "bg-white/20 text-white"
+                            : "bg-slate-100 dark:bg-white/10 text-rose-500"
+                        }`}
+                      >
+                        {h.label}
+                      </span>
+                      <span className={`text-xs ${isSelected ? "text-white font-bold" : "font-medium"}`}>
+                        {h.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+          {/* Inline Formatting Tools */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => executeCommand("bold")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                isBoldActive
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Bold (Ctrl+B)"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_bold</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => executeCommand("italic")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                isItalicActive
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Italic (Ctrl+I)"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_italic</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => executeCommand("underline")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                isUnderlineActive
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Underline (Ctrl+U)"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_underlined</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => executeCommand("strikeThrough")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                isStrikethroughActive
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Strikethrough"
+            >
+              <span className="material-symbols-outlined text-[14px]">strikethrough_s</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={applyInlineCodeToSelection}
+              className="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              title="Inline Code Tag"
+            >
+              <span className="material-symbols-outlined text-[14px]">code</span>
+            </button>
+          </div>
+
+          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+          {/* Text Color Picker */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => toggleDropdown("textColor", e)}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                isTextColorPickerOpen
+                  ? "bg-rose-500/15 text-rose-600"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Text Color"
+            >
+              <span className="material-symbols-outlined text-[14px] text-rose-500">
+                format_color_text
+              </span>
+            </button>
+            {isTextColorPickerOpen && (
+              <div
+                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+                className="w-52 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
+              >
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Text Color
+                </span>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {TEXT_COLOR_PALETTE.map((c) => (
+                    <button
+                      key={c.value}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => applyTextColorToSelection(c.value)}
+                      style={{ backgroundColor: c.value }}
+                      className="w-7 h-7 rounded-lg border border-white/20 shadow-xs hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                      title={c.label}
+                    />
+                  ))}
+                </div>
+                <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={customColorHex}
+                    onChange={(e) => setCustomColorHex(e.target.value)}
+                    className="w-7 h-7 rounded-lg cursor-pointer border-0 p-0"
+                  />
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyTextColorToSelection(customColorHex)}
+                    className="flex-1 py-1 bg-slate-100 dark:bg-white/10 hover:bg-rose-500 hover:text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Apply Hex
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Highlight Background Picker */}
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={(e) => toggleDropdown("highlight", e)}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                isHighlightPickerOpen
+                  ? "bg-amber-500/15 text-amber-600"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Highlight Background"
+            >
+              <span className="material-symbols-outlined text-[14px] text-amber-500">
+                ink_highlighter
+              </span>
+            </button>
+            {isHighlightPickerOpen && (
+              <div
+                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
+                className="w-48 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
+              >
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  Highlight Color
+                </span>
+                <div className="grid grid-cols-3 gap-2">
+                  {HIGHLIGHT_COLOR_PALETTE.map((c) => (
+                    <button
+                      key={c.label}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => applyHighlightColorToSelection(c.value)}
+                      style={{
+                        backgroundColor: c.value === "transparent" ? "#f1f5f9" : c.value,
+                      }}
+                      className="py-1 px-1.5 rounded-lg text-[10px] font-medium text-slate-800 border border-slate-300 dark:border-white/10 shadow-xs hover:scale-105 transition-all cursor-pointer text-center"
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Clear Formatting */}
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={applyClearFormatting}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+            title="Clear Formatting"
+          >
+            <span className="material-symbols-outlined text-[14px]">format_clear</span>
+          </button>
+
+          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+          {/* Alignments */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => applyAlignmentToSelection("left")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                textAlign === "left"
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Align Left"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_align_left</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => applyAlignmentToSelection("center")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                textAlign === "center"
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Align Center"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_align_center</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => applyAlignmentToSelection("right")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                textAlign === "right"
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Align Right"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_align_right</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => applyAlignmentToSelection("justify")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                textAlign === "justify"
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Justify"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_align_justify</span>
+            </button>
+          </div>
+
+          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+          {/* Lists */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => executeCommand("insertUnorderedList")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                isBulletListActive
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Bullet List"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_list_bulleted</span>
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => executeCommand("insertOrderedList")}
+              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
+                isNumberedListActive
+                  ? "bg-rose-500/15 text-rose-600 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
+              }`}
+              title="Numbered List"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_list_numbered</span>
+            </button>
+          </div>
+
+          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+          {/* Insert Link & Media */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                saveCurrentSelection();
+              }}
+              onClick={() => {
+                saveCurrentSelection();
+                openPrompt({
+                  title: "Insert Hyperlink",
+                  description: "Enter destination URL for selected text:",
+                  placeholder: "https://example.com...",
+                  icon: "link",
+                  iconColor: "sky",
+                  onConfirm: (url) => {
+                    applyLinkToSelection(url);
+                  },
+                });
+              }}
+              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Insert Link"
+            >
+              <span className="material-symbols-outlined text-[14px]">link</span>
+              <span>Link</span>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => fileInputRef.current?.click()}
+              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Upload WebP Image"
+            >
+              <span className="material-symbols-outlined text-[14px]">image</span>
+              <span>Image</span>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => videoFileInputRef.current?.click()}
+              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Tải video từ máy (MP4, WebM, MOV...)"
+            >
+              {isUploadingVideo ? (
+                <span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-rose-500 rounded-full animate-spin" />
+              ) : (
+                <span className="material-symbols-outlined text-[14px]">smart_display</span>
+              )}
+              <span>Video</span>
+            </button>
+          </div>
+
+          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+          {/* Quick Add Block Shortcuts */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => addBlock("quote")}
+              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Add Quote Block"
+            >
+              <span className="material-symbols-outlined text-[14px]">format_quote</span>
+              <span>Quote</span>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => addBlock("table")}
+              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Add Table Block"
+            >
+              <span className="material-symbols-outlined text-[14px]">table_chart</span>
+              <span>Table</span>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => addBlock("columns")}
+              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Add 2-Column Block"
+            >
+              <span className="material-symbols-outlined text-[14px]">view_column</span>
+              <span>2-Col</span>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => addBlock("divider")}
+              className="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              title="Add Divider"
+            >
+              <span className="material-symbols-outlined text-[14px]">horizontal_rule</span>
             </button>
           </div>
         </div>
@@ -1169,255 +2570,8 @@ export default function AdminEditor({
 
       {/* Main Grid Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Editor Body & Toolbar */}
+        {/* Left Column: Editor Body */}
         <main className="lg:col-span-8 space-y-6">
-          {/* Universal Rich Floating Toolbar */}
-          <div className="sticky top-16 z-30 bg-white/95 dark:bg-[#1a1524]/95 backdrop-blur-md p-2.5 rounded-2xl shadow-lg border border-slate-200 dark:border-[#2c2835] flex items-center gap-1.5 flex-wrap">
-            {/* Inline Formatting */}
-            <div className="flex items-center gap-1 pr-2 border-r border-slate-200 dark:border-[#2c2835]">
-              <button
-                type="button"
-                onClick={() => executeCommand("bold")}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  isBoldActive
-                    ? "bg-rose-500/20 text-rose-600 font-bold"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-                }`}
-                title="In đậm (Bold)"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  format_bold
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand("italic")}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  isItalicActive
-                    ? "bg-rose-500/20 text-rose-600"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-                }`}
-                title="In nghiêng (Italic)"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  format_italic
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand("underline")}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  isUnderlineActive
-                    ? "bg-rose-500/20 text-rose-600"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-                }`}
-                title="Gạch chân (Underline)"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  format_underlined
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => executeCommand("strikeThrough")}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  isStrikethroughActive
-                    ? "bg-rose-500/20 text-rose-600"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-                }`}
-                title="Gạch ngang chữ"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  strikethrough_s
-                </span>
-              </button>
-            </div>
-
-            {/* Alignments */}
-            <div className="flex items-center gap-1 pr-2 border-r border-slate-200 dark:border-[#2c2835]">
-              <button
-                type="button"
-                onClick={() => {
-                  setTextAlign("left");
-                  executeCommand("justifyLeft");
-                }}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  textAlign === "left"
-                    ? "bg-rose-500/20 text-rose-600"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-                }`}
-                title="Căn trái"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  format_align_left
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTextAlign("center");
-                  executeCommand("justifyCenter");
-                }}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  textAlign === "center"
-                    ? "bg-rose-500/20 text-rose-600"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-                }`}
-                title="Căn giữa"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  format_align_center
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTextAlign("right");
-                  executeCommand("justifyRight");
-                }}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  textAlign === "right"
-                    ? "bg-rose-500/20 text-rose-600"
-                    : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-                }`}
-                title="Căn phải"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  format_align_right
-                </span>
-              </button>
-            </div>
-
-            {/* Insert Link & Media */}
-            <div className="flex items-center gap-1 pr-2 border-r border-slate-200 dark:border-[#2c2835]">
-              <button
-                type="button"
-                onClick={() => {
-                  openPrompt({
-                    title: "Chèn liên kết (Hyperlink)",
-                    placeholder: "https://example.com...",
-                    icon: "link",
-                    iconColor: "sky",
-                    onConfirm: (url) => {
-                      executeCommand("createLink", url);
-                    },
-                  });
-                }}
-                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                title="Chèn liên kết"
-              >
-                <span className="material-symbols-outlined text-[18px]">link</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                title="Tải ảnh lên (Image WebP)"
-              >
-                <span className="material-symbols-outlined text-[18px]">image</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  openPrompt({
-                    title: "Chèn Video Embed (YouTube / Vimeo)",
-                    placeholder: "https://www.youtube.com/watch?v=...",
-                    icon: "smart_display",
-                    iconColor: "rose",
-                    onConfirm: (url) => {
-                      const newBlock: BlogBlock = {
-                        id: `vid-${Date.now()}`,
-                        type: "video",
-                        url,
-                        caption: "",
-                      };
-                      pushHistory([...blocks, newBlock]);
-                    },
-                  });
-                }}
-                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                title="Chèn Video YouTube/Vimeo"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  smart_display
-                </span>
-              </button>
-            </div>
-
-            {/* Insert Structure Blocks */}
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => addBlock("heading")}
-                className="px-2 py-1 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1"
-                title="Thêm Đề mục H2"
-              >
-                <span className="material-symbols-outlined text-[16px]">title</span>
-                <span>H2</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => addBlock("paragraph")}
-                className="px-2 py-1 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1"
-                title="Thêm Đoạn văn"
-              >
-                <span className="material-symbols-outlined text-[16px]">
-                  segment
-                </span>
-                <span>Đoạn</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => addBlock("quote")}
-                className="px-2 py-1 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1"
-                title="Thêm Trích dẫn"
-              >
-                <span className="material-symbols-outlined text-[16px]">
-                  format_quote
-                </span>
-                <span>Trích dẫn</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => addBlock("table")}
-                className="px-2 py-1 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1"
-                title="Thêm Bảng dữ liệu"
-              >
-                <span className="material-symbols-outlined text-[16px]">
-                  table_chart
-                </span>
-                <span>Bảng</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => addBlock("columns")}
-                className="px-2 py-1 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1"
-                title="Thêm Khối 2 Cột Side-by-side"
-              >
-                <span className="material-symbols-outlined text-[16px]">
-                  view_column
-                </span>
-                <span>2 Cột</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => addBlock("divider")}
-                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                title="Thêm Đường phân cách"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  horizontal_rule
-                </span>
-              </button>
-            </div>
-          </div>
 
           {/* Article Container Card */}
           <div className="bg-white dark:bg-[#1a1426] rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200 dark:border-[#2c2835] space-y-6">
@@ -1427,19 +2581,26 @@ export default function AdminEditor({
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Nhập tiêu đề bài viết lớn..."
+                placeholder="Enter article title..."
                 className="w-full text-2xl sm:text-4xl font-extrabold text-slate-900 dark:text-white bg-transparent border-none outline-none placeholder-slate-300 dark:placeholder-slate-600 tracking-tight leading-tight font-serif"
               />
             </div>
 
-            {/* Sapo / Excerpt */}
+            {/* Excerpt / Lead Paragraph - Auto Expanding Full Height */}
             <div>
               <textarea
+                ref={summaryTextareaRef}
                 value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                placeholder="Nhập đoạn tóm tắt mở đầu (Sapo / Excerpt) của bài viết..."
-                rows={2}
-                className="w-full text-sm sm:text-base text-slate-600 dark:text-[#ad8888] bg-slate-50 dark:bg-[#120d20] p-4 rounded-2xl border border-slate-200 dark:border-white/5 outline-none resize-none leading-relaxed italic"
+                onChange={(e) => {
+                  setSummary(e.target.value);
+                  if (summaryTextareaRef.current) {
+                    summaryTextareaRef.current.style.height = "auto";
+                    summaryTextareaRef.current.style.height = `${summaryTextareaRef.current.scrollHeight}px`;
+                  }
+                }}
+                placeholder="Enter article excerpt or lead overview..."
+                rows={1}
+                className="w-full text-sm sm:text-base text-slate-600 dark:text-[#ad8888] bg-slate-50 dark:bg-[#120d20] p-4 rounded-2xl border border-slate-200 dark:border-white/5 outline-none resize-none leading-relaxed italic overflow-hidden transition-[height] duration-75"
               />
             </div>
 
@@ -1451,16 +2612,27 @@ export default function AdminEditor({
                 return (
                   <div
                     key={blockId}
-                    className="relative group/block rounded-2xl p-4 transition-all bg-slate-50/50 dark:bg-white/[0.02] hover:bg-slate-100/80 dark:hover:bg-white/[0.04] border border-transparent hover:border-slate-200 dark:hover:border-white/10"
+                    onClick={() => {
+                      targetBlockIndexRef.current = idx;
+                    }}
+                    onFocus={() => {
+                      targetBlockIndexRef.current = idx;
+                    }}
+                    className={`relative group/block transition-all ${
+                      block.type === "paragraph" || block.type === "image" || block.type === "heading" || block.type === "video"
+                        ? "p-0 bg-transparent border-none"
+                        : "rounded-2xl p-4 bg-slate-50/50 dark:bg-white/[0.02] hover:bg-slate-100/80 dark:hover:bg-white/[0.04] border border-transparent hover:border-slate-200 dark:border-white/10"
+                    }`}
                   >
-                    {/* Block Action Controls on Hover */}
+                    {/* Hover Block Controls */}
                     <div className="absolute top-2 right-2 opacity-0 group-hover/block:opacity-100 transition-opacity flex items-center gap-1 bg-white dark:bg-[#201a30] shadow-md border border-slate-200 dark:border-white/10 rounded-xl p-1 z-20">
                       <button
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => moveBlock(idx, "up")}
                         disabled={idx === 0}
-                        className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-20"
-                        title="Di chuyển lên"
+                        className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-20 cursor-pointer"
+                        title="Move Up"
                       >
                         <span className="material-symbols-outlined text-[16px]">
                           arrow_upward
@@ -1468,10 +2640,11 @@ export default function AdminEditor({
                       </button>
                       <button
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => moveBlock(idx, "down")}
                         disabled={idx === blocks.length - 1}
-                        className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-20"
-                        title="Di chuyển xuống"
+                        className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white disabled:opacity-20 cursor-pointer"
+                        title="Move Down"
                       >
                         <span className="material-symbols-outlined text-[16px]">
                           arrow_downward
@@ -1479,9 +2652,10 @@ export default function AdminEditor({
                       </button>
                       <button
                         type="button"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => deleteBlock(blockId)}
-                        className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                        title="Xóa khối"
+                        className="p-1 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                        title="Delete Block"
                       >
                         <span className="material-symbols-outlined text-[16px]">
                           delete
@@ -1489,20 +2663,47 @@ export default function AdminEditor({
                       </button>
                     </div>
 
-                    {/* Block Renderers */}
+                    {/* Block Content Renderers */}
                     {block.type === "heading" && (
                       <div className="flex items-start gap-3">
-                        <span className="text-rose-500 font-mono text-lg font-bold mt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentLvl = block.level || 2;
+                            const nextLvl = (currentLvl % 6) + 1;
+                            updateBlock(blockId, { level: nextLvl });
+                          }}
+                          className="text-rose-600 dark:text-rose-400 font-mono text-xs font-bold mt-1.5 select-none bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 px-2 py-0.5 rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
+                          title="Click to cycle heading level (H1 - H6)"
+                        >
+                          H{block.level || 2}
+                        </button>
+                        <span className="text-rose-500 font-mono text-lg font-bold mt-1 select-none">
                           {String(idx + 1).padStart(2, "0")}.
                         </span>
                         <RichEditableBlock
                           html={block.text || ""}
-                          placeholder="Nhập tiêu đề đề mục H2..."
+                          placeholder={`Enter Heading ${block.level || 2}...`}
                           blockId={blockId}
+                          onFocus={() => {
+                            targetBlockIndexRef.current = idx;
+                            handleSelectionOrFocusChange();
+                          }}
+                          onSelectionChange={() => {
+                            targetBlockIndexRef.current = idx;
+                            handleSelectionOrFocusChange();
+                          }}
                           onChange={(newHtml) =>
                             updateBlock(blockId, { text: newHtml })
                           }
-                          className="flex-1 text-xl sm:text-2xl font-bold text-slate-900 dark:text-white"
+                          className={`flex-1 font-bold text-slate-900 dark:text-white ${
+                            (block.level === 1 && "text-2xl sm:text-3xl font-extrabold") ||
+                            (block.level === 3 && "text-lg sm:text-xl") ||
+                            (block.level === 4 && "text-base sm:text-lg") ||
+                            (block.level === 5 && "text-sm sm:text-base") ||
+                            (block.level === 6 && "text-xs sm:text-sm") ||
+                            "text-xl sm:text-2xl"
+                          }`}
                         />
                       </div>
                     )}
@@ -1510,11 +2711,19 @@ export default function AdminEditor({
                     {block.type === "paragraph" && (
                       <RichEditableBlock
                         html={block.text || ""}
-                        placeholder="Nhập nội dung đoạn văn (Ctrl+V để dán ảnh trực tiếp)..."
+                        placeholder="Write paragraph content here (Press Ctrl+V to paste images directly)..."
                         blockId={blockId}
+                        onFocus={() => {
+                          targetBlockIndexRef.current = idx;
+                          handleSelectionOrFocusChange();
+                        }}
+                        onSelectionChange={() => {
+                          targetBlockIndexRef.current = idx;
+                          handleSelectionOrFocusChange();
+                        }}
                         onPasteImage={async (file) => {
                           const url = await uploadImageToServer(file);
-                          const newBlock: BlogBlock = {
+                          const newImgBlock: BlogBlock = {
                             id: `img-${Date.now()}`,
                             type: "image",
                             url,
@@ -1522,43 +2731,65 @@ export default function AdminEditor({
                             width: "100%",
                             align: "center",
                           };
+                          const newParagraphId = `block-${Date.now() + 1}`;
+                          const newParagraphBlock: BlogBlock = {
+                            id: newParagraphId,
+                            type: "paragraph",
+                            text: "",
+                            align: "left",
+                          };
                           const next = [...blocks];
-                          next.splice(idx + 1, 0, newBlock);
+                          next.splice(idx + 1, 0, newImgBlock, newParagraphBlock);
+                          targetBlockIndexRef.current = idx + 2;
                           pushHistory(next);
+                          setTimeout(() => {
+                            const el = document.querySelector(`[data-block-id="${newParagraphId}"]`) as HTMLElement;
+                            el?.focus();
+                          }, 50);
                         }}
                         onChange={(newHtml) =>
                           updateBlock(blockId, { text: newHtml })
                         }
-                        className="text-base sm:text-lg text-slate-800 dark:text-slate-200 leading-relaxed min-h-[48px]"
+                        className="text-base sm:text-lg text-slate-800 dark:text-slate-200 leading-relaxed min-h-[36px]"
                       />
                     )}
 
                     {block.type === "image" && (
-                      <ResizableImageBlock
-                        block={block}
-                        onUpdate={(updates) => updateBlock(blockId, updates)}
-                        onDelete={() => deleteBlock(blockId)}
-                        onReplace={() => {
-                          setReplaceTargetBlockId(blockId);
-                          replaceImageFileInputRef.current?.click();
-                        }}
-                      />
+                      <div className="space-y-2">
+                        <ResizableImageBlock
+                          block={block}
+                          onUpdate={(updates) => updateBlock(blockId, updates)}
+                          onDelete={() => deleteBlock(blockId)}
+                          onReplace={() => {
+                            setReplaceTargetBlockId(blockId);
+                            replaceImageFileInputRef.current?.click();
+                          }}
+                        />
+                      </div>
                     )}
 
                     {block.type === "quote" && (
-                      <div className="p-4 rounded-xl bg-slate-100 dark:bg-[#161127] border-l-4 border-rose-500 space-y-2">
-                        <input
-                          type="text"
+                      <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-[#161127] border-l-4 border-rose-500 space-y-2.5 shadow-sm">
+                        <textarea
                           value={block.text || ""}
-                          onChange={(e) =>
-                            updateBlock(blockId, { text: e.target.value })
-                          }
-                          placeholder="Nhập câu trích dẫn nổi bật..."
-                          className="w-full bg-transparent text-base sm:text-lg italic font-medium text-slate-800 dark:text-slate-200 outline-none"
+                          onFocus={() => {
+                            targetBlockIndexRef.current = idx;
+                          }}
+                          onChange={(e) => {
+                            updateBlock(blockId, { text: e.target.value });
+                            e.target.style.height = "auto";
+                            e.target.style.height = `${e.target.scrollHeight}px`;
+                          }}
+                          placeholder="Nhập nội dung trích dẫn (Quote)..."
+                          rows={2}
+                          className="w-full bg-transparent text-base sm:text-lg italic font-medium text-slate-800 dark:text-slate-200 outline-none resize-none"
                         />
                         <input
                           type="text"
                           value={block.author || ""}
+                          onFocus={() => {
+                            targetBlockIndexRef.current = idx;
+                          }}
                           onChange={(e) =>
                             updateBlock(blockId, { author: e.target.value })
                           }
@@ -1572,7 +2803,7 @@ export default function AdminEditor({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-2">
                         <div className="space-y-2">
                           <span className="text-[11px] font-bold uppercase tracking-wider text-rose-500">
-                            Cột Trái
+                            Left Column
                           </span>
                           {block.leftType === "image" && block.leftImageUrl ? (
                             <ColumnImageResizable
@@ -1599,18 +2830,28 @@ export default function AdminEditor({
                           ) : (
                             <RichEditableBlock
                               html={block.leftText || ""}
-                              placeholder="Nhập nội dung cột trái..."
+                              placeholder="Enter left column content..."
+                              blockId={blockId}
+                              field="left"
+                              onFocus={() => {
+                                targetBlockIndexRef.current = idx;
+                                handleSelectionOrFocusChange();
+                              }}
+                              onSelectionChange={() => {
+                                targetBlockIndexRef.current = idx;
+                                handleSelectionOrFocusChange();
+                              }}
                               onChange={(html) =>
                                 updateBlock(blockId, { leftText: html })
                               }
-                              className="text-sm sm:text-base leading-relaxed p-3 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10"
+                              className="text-sm sm:text-base leading-relaxed p-3 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 min-h-[80px]"
                             />
                           )}
                         </div>
 
                         <div className="space-y-2">
                           <span className="text-[11px] font-bold uppercase tracking-wider text-sky-500">
-                            Cột Phải
+                            Right Column
                           </span>
                           {block.rightType === "image" && block.rightImageUrl ? (
                             <ColumnImageResizable
@@ -1637,11 +2878,21 @@ export default function AdminEditor({
                           ) : (
                             <RichEditableBlock
                               html={block.rightText || ""}
-                              placeholder="Nhập nội dung cột phải..."
+                              placeholder="Enter right column content..."
+                              blockId={blockId}
+                              field="right"
+                              onFocus={() => {
+                                targetBlockIndexRef.current = idx;
+                                handleSelectionOrFocusChange();
+                              }}
+                              onSelectionChange={() => {
+                                targetBlockIndexRef.current = idx;
+                                handleSelectionOrFocusChange();
+                              }}
                               onChange={(html) =>
                                 updateBlock(blockId, { rightText: html })
                               }
-                              className="text-sm sm:text-base leading-relaxed p-3 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10"
+                              className="text-sm sm:text-base leading-relaxed p-3 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 min-h-[80px]"
                             />
                           )}
                         </div>
@@ -1649,56 +2900,158 @@ export default function AdminEditor({
                     )}
 
                     {block.type === "video" && (
-                      <div className="relative aspect-video rounded-2xl overflow-hidden bg-black max-w-2xl mx-auto shadow-lg">
-                        <iframe
-                          src={formatVideoEmbedUrl(block.url)}
-                          title="Video Embed"
-                          className="w-full h-full border-0"
-                          allowFullScreen
+                      <div className="space-y-2 my-4">
+                        <div className="relative aspect-video rounded-2xl overflow-hidden bg-black max-w-3xl mx-auto shadow-lg flex items-center justify-center">
+                          {block.isLoading ? (
+                            <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center gap-3 z-20 text-white p-4 animate-in fade-in duration-200">
+                              <div className="relative flex items-center justify-center">
+                                <div className="w-14 h-14 rounded-full border-3 border-rose-500/20 border-t-rose-500 animate-spin" />
+                                <span className="material-symbols-outlined absolute text-rose-400 text-xl animate-pulse">
+                                  movie
+                                </span>
+                              </div>
+                              <div className="text-center space-y-1">
+                                <div className="text-sm font-bold text-white tracking-wide">
+                                  Đang tải video lên...
+                                </div>
+                                <div className="text-[11px] text-slate-400 font-medium">
+                                  Đang tối ưu hóa định dạng video tốc độ cao
+                                </div>
+                              </div>
+                            </div>
+                          ) : block.url?.startsWith("data:") ||
+                            block.url?.startsWith("blob:") ||
+                            block.url?.includes("/video/upload/") ||
+                            block.url?.includes(".mp4") ||
+                            block.url?.includes(".webm") ||
+                            block.url?.includes(".mov") ? (
+                            <video
+                              src={block.url}
+                              controls
+                              playsInline
+                              preload="metadata"
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <iframe
+                              src={formatVideoEmbedUrl(block.url)}
+                              title={block.caption || "Video Embed"}
+                              className="w-full h-full border-0"
+                              allowFullScreen
+                            />
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={block.caption || ""}
+                          onFocus={() => {
+                            targetBlockIndexRef.current = idx;
+                          }}
+                          onChange={(e) =>
+                            updateBlock(blockId, { caption: e.target.value })
+                          }
+                          placeholder="Thêm chú thích video (không bắt buộc)..."
+                          className="w-full text-center text-xs text-slate-500 dark:text-slate-400 italic bg-transparent outline-none border-b border-transparent focus:border-slate-300 dark:focus:border-white/20 py-1"
                         />
                       </div>
                     )}
 
                     {block.type === "table" && (
-                      <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-white/10">
-                        <table className="w-full text-sm">
-                          <thead className="bg-slate-100 dark:bg-white/5">
-                            <tr>
-                              {block.headers?.map((h, hIdx) => (
-                                <th key={hIdx} className="p-2.5">
-                                  <input
-                                    value={h}
-                                    onChange={(e) => {
-                                      const nextH = [...(block.headers || [])];
-                                      nextH[hIdx] = e.target.value;
-                                      updateBlock(blockId, { headers: nextH });
-                                    }}
-                                    className="w-full bg-transparent font-bold text-rose-600 outline-none text-xs uppercase"
-                                  />
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                            {block.rows?.map((row, rIdx) => (
-                              <tr key={rIdx}>
-                                {row.map((cell, cIdx) => (
-                                  <td key={cIdx} className="p-2.5">
+                      <div className="space-y-2">
+                        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
+                          <table className="w-full text-sm">
+                            <thead className="bg-slate-50 dark:bg-white/5 border-b border-slate-200 dark:border-white/10">
+                              <tr>
+                                {block.headers?.map((h, hIdx) => (
+                                  <th key={hIdx} className="p-2.5">
                                     <input
-                                      value={cell}
-                                      onChange={(e) => {
-                                        const nextRows = [...(block.rows || [])];
-                                        nextRows[rIdx][cIdx] = e.target.value;
-                                        updateBlock(blockId, { rows: nextRows });
+                                      value={h}
+                                      onFocus={() => {
+                                        targetBlockIndexRef.current = idx;
                                       }}
-                                      className="w-full bg-transparent text-slate-800 dark:text-slate-200 outline-none text-xs"
+                                      onChange={(e) => {
+                                        const nextH = [...(block.headers || [])];
+                                        nextH[hIdx] = e.target.value;
+                                        updateBlock(blockId, { headers: nextH });
+                                      }}
+                                      className="w-full bg-transparent font-bold text-rose-600 dark:text-rose-400 outline-none text-xs uppercase"
+                                      placeholder={`Cột ${hIdx + 1}`}
                                     />
-                                  </td>
+                                  </th>
                                 ))}
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                              {block.rows?.map((row, rIdx) => (
+                                <tr key={rIdx}>
+                                  {row.map((cell, cIdx) => (
+                                    <td key={cIdx} className="p-2.5">
+                                      <input
+                                        value={cell}
+                                        onFocus={() => {
+                                          targetBlockIndexRef.current = idx;
+                                        }}
+                                        onChange={(e) => {
+                                          const nextRows = [...(block.rows || [])];
+                                          nextRows[rIdx][cIdx] = e.target.value;
+                                          updateBlock(blockId, { rows: nextRows });
+                                        }}
+                                        className="w-full bg-transparent text-slate-800 dark:text-slate-200 outline-none text-xs"
+                                        placeholder="..."
+                                      />
+                                    </td>
+                                  ))}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Table Controls */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextRows = [...(block.rows || [])];
+                              const colCount = block.headers?.length || (nextRows[0]?.length ?? 3);
+                              nextRows.push(Array(colCount).fill(""));
+                              updateBlock(blockId, { rows: nextRows });
+                            }}
+                            className="px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-rose-500 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                            title="Thêm hàng mới"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">add</span>
+                            <span>Thêm hàng</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const nextHeaders = [...(block.headers || [])];
+                              nextHeaders.push(`Cột ${nextHeaders.length + 1}`);
+                              const nextRows = (block.rows || []).map((r) => [...r, ""]);
+                              updateBlock(blockId, { headers: nextHeaders, rows: nextRows });
+                            }}
+                            className="px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-rose-500 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                            title="Thêm cột mới"
+                          >
+                            <span className="material-symbols-outlined text-[13px]">add</span>
+                            <span>Thêm cột</span>
+                          </button>
+                          {block.rows && block.rows.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextRows = block.rows?.slice(0, -1) || [];
+                                updateBlock(blockId, { rows: nextRows });
+                              }}
+                              className="px-2 py-1 text-xs font-medium text-rose-500 hover:text-rose-600 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                              title="Xóa hàng cuối"
+                            >
+                              <span className="material-symbols-outlined text-[13px]">remove</span>
+                              <span>Xóa hàng</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
 
@@ -1712,22 +3065,22 @@ export default function AdminEditor({
           </div>
         </main>
 
-        {/* Right Sidebar: Settings, Cover & Live Metrics */}
+        {/* Right Sidebar: Settings & Publishing Controls */}
         <aside className="lg:col-span-4 space-y-6">
-          {/* Card 1: Cover Image */}
+          {/* Cover Image Card */}
           <div className="bg-white dark:bg-[#1a1426] rounded-3xl p-5 shadow-lg border border-slate-200 dark:border-[#2c2835] space-y-4">
             <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
               <span className="material-symbols-outlined text-rose-500 text-[20px]">
                 image
               </span>
-              <span>Ảnh bìa bài viết (.webp)</span>
+              <span>Article Cover Image (.webp)</span>
             </h3>
 
             {coverImage ? (
               <div className="relative aspect-video rounded-2xl overflow-hidden shadow-md group">
                 <OptimizedImage
                   src={coverImage}
-                  alt="Ảnh bìa bài viết"
+                  alt="Article Cover"
                   containerClassName="w-full h-full"
                   className="w-full h-full object-cover"
                 />
@@ -1735,16 +3088,16 @@ export default function AdminEditor({
                   <button
                     type="button"
                     onClick={() => coverFileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-white text-slate-900 rounded-xl font-bold text-xs shadow-md hover:bg-slate-100 transition-colors"
+                    className="px-3 py-1.5 bg-white text-slate-900 rounded-xl font-bold text-xs shadow-md hover:bg-slate-100 transition-colors cursor-pointer"
                   >
-                    Thay ảnh
+                    Replace Image
                   </button>
                   <button
                     type="button"
                     onClick={() => setCoverImage("")}
-                    className="px-3 py-1.5 bg-rose-500 text-white rounded-xl font-bold text-xs shadow-md hover:bg-rose-600 transition-colors"
+                    className="px-3 py-1.5 bg-rose-500 text-white rounded-xl font-bold text-xs shadow-md hover:bg-rose-600 transition-colors cursor-pointer"
                   >
-                    Xóa
+                    Remove
                   </button>
                 </div>
               </div>
@@ -1763,10 +3116,10 @@ export default function AdminEditor({
                       add_photo_alternate
                     </span>
                     <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      Tải lên ảnh bìa WebP
+                      Upload WebP Cover
                     </span>
                     <span className="text-[10px] text-slate-400 mt-0.5">
-                      Tự động nén chuẩn WebP tốc độ cao
+                      Automatically optimized to high-speed WebP
                     </span>
                   </>
                 )}
@@ -1774,124 +3127,44 @@ export default function AdminEditor({
             )}
           </div>
 
-          {/* Card 2: Meta Info */}
+          {/* Publishing Information Card */}
           <div className="bg-white dark:bg-[#1a1426] rounded-3xl p-5 shadow-lg border border-slate-200 dark:border-[#2c2835] space-y-4">
             <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
               <span className="material-symbols-outlined text-purple-500 text-[20px]">
                 settings
               </span>
-              <span>Thông tin xuất bản</span>
+              <span>Publishing Settings</span>
             </h3>
-
-            {/* Category */}
-            <div>
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                Danh mục bài viết
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-[#120d20] border border-slate-200 dark:border-[#2c2835] rounded-xl px-3 py-2 text-xs font-medium outline-none text-slate-900 dark:text-white"
-              >
-                <option value="Nail Tutorials & Care">Nail Tutorials & Care</option>
-                <option value="Trends & Design Ideas">Trends & Design Ideas</option>
-                <option value="Press-on Sizing & Fit">Press-on Sizing & Fit</option>
-                <option value="Salon & Lifestyle">Salon & Lifestyle</option>
-                <option value="Công nghệ & Nail Art">Công nghệ & Nail Art</option>
-              </select>
-            </div>
-
-            {/* Author */}
-            <div>
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                Tác giả bài viết
-              </label>
-              <input
-                type="text"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-[#120d20] border border-slate-200 dark:border-[#2c2835] rounded-xl px-3 py-2 text-xs font-medium outline-none text-slate-900 dark:text-white"
-              />
-            </div>
 
             {/* Slug */}
             <div>
               <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                Đường dẫn tĩnh (Slug)
+                Permanent Link (Slug)
               </label>
               <input
                 type="text"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
+                placeholder="auto-generated-from-title"
                 className="w-full bg-slate-50 dark:bg-[#120d20] border border-slate-200 dark:border-[#2c2835] rounded-xl px-3 py-2 text-xs font-mono outline-none text-slate-900 dark:text-white"
               />
             </div>
 
-            {/* Status Switch */}
+            {/* Publishing Status Toggle */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5">
               <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Trạng thái xuất bản:
+                Publishing Status:
               </span>
               <button
                 type="button"
                 onClick={() => setIsPublic(!isPublic)}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                  isPublic
-                    ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
-                    : "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-                }`}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${isPublic
+                  ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                  : "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                  }`}
               >
-                {isPublic ? "Công khai (Published)" : "Bản nháp (Draft)"}
+                {isPublic ? "Published" : "Draft"}
               </button>
-            </div>
-          </div>
-
-          {/* Card 3: Live Document Analytics */}
-          <div className="bg-white dark:bg-[#1a1426] rounded-3xl p-5 shadow-lg border border-slate-200 dark:border-[#2c2835] space-y-4">
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
-              <span className="material-symbols-outlined text-sky-500 text-[20px]">
-                analytics
-              </span>
-              <span>Chỉ số tài liệu</span>
-            </h3>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#120d20] flex flex-col border border-slate-200 dark:border-[#2c2835]">
-                <span className="text-[11px] text-slate-500">Số lượng từ</span>
-                <span className="font-bold text-xl text-slate-900 dark:text-white mt-0.5">
-                  {wordCount}
-                </span>
-                <span className="text-[10px] text-emerald-500 mt-0.5">
-                  {wordCount > 300 ? "Đạt chuẩn chuyên sâu" : "Đang soạn thảo"}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#120d20] flex flex-col border border-slate-200 dark:border-[#2c2835]">
-                <span className="text-[11px] text-slate-500">Thời gian đọc</span>
-                <span className="font-bold text-xl text-sky-500 mt-0.5">
-                  ~{readTimeMinutes}
-                  <span className="text-xs ml-1 font-normal">phút</span>
-                </span>
-                <span className="text-[10px] text-slate-400 mt-0.5">
-                  Tương tác trực quan
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#120d20] flex flex-col border border-slate-200 dark:border-[#2c2835]">
-                <span className="text-[11px] text-slate-500">Đề mục H2</span>
-                <span className="font-bold text-sm text-slate-900 dark:text-white mt-0.5">
-                  {headingsCount} Mục
-                </span>
-                <span className="text-[10px] text-rose-500 mt-0.5">Mạch lạc</span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-[#120d20] flex flex-col border border-slate-200 dark:border-[#2c2835]">
-                <span className="text-[11px] text-slate-500">Tài nguyên ảnh</span>
-                <span className="font-bold text-sm text-slate-900 dark:text-white mt-0.5">
-                  {imageBlocksCount} Ảnh WebP
-                </span>
-                <span className="text-[10px] text-sky-500 mt-0.5">Tối ưu CDN</span>
-              </div>
             </div>
           </div>
         </aside>

@@ -1,26 +1,170 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Menu,
   ShoppingBag,
   Search,
   Heart,
   ChevronDown,
+  X,
+  Loader2,
+  TrendingUp,
+  Clock,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 
+interface SearchProductItem {
+  id: string | number;
+  name?: string;
+  title?: string;
+  slug: string;
+  price: number | string;
+  salePrice?: number | null;
+  thumbnail?: string;
+  images?: string[];
+  category?: string;
+  shapes?: string[];
+}
+
+const POPULAR_SEARCHES = [
+  "Handmade X-On",
+  "Best Seller",
+  "3D",
+  "Y2K",
+  "Flower",
+  "Almond",
+  "Coffin",
+  "Cold Gel Glue",
+];
+
 export function Header() {
+  const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [shopExpanded, setShopExpanded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchProductItem[]>([]);
+  const [totalSearchMatches, setTotalSearchMatches] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [scrollY, setScrollY] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { openCart, totalCount, subtotal } = useCart();
+
+  // Load recent searches from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("xon_recent_searches");
+      if (saved) {
+        setRecentSearches(JSON.parse(saved));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const saveRecentSearch = (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    try {
+      const updated = [trimmed, ...recentSearches.filter((s) => s.toLowerCase() !== trimmed.toLowerCase())].slice(0, 6);
+      setRecentSearches(updated);
+      localStorage.setItem("xon_recent_searches", JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem("xon_recent_searches");
+    } catch {
+      // ignore
+    }
+  };
+
+  // Keyboard shortcut Cmd/Ctrl + K and Escape to toggle search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      } else if (e.key === "Escape" && searchOpen) {
+        setSearchOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchOpen]);
+
+  // Focus input when search modal opens
+  useEffect(() => {
+    if (searchOpen) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+    } else {
+      setSearchQuery("");
+      setSearchResults([]);
+    }
+  }, [searchOpen]);
+
+  // Live search debounced API fetch
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      setSearchResults([]);
+      setTotalSearchMatches(0);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/products?search=${encodeURIComponent(trimmed)}&limit=6`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            setSearchResults(json.data.products || []);
+            setTotalSearchMatches(json.data.total || 0);
+          }
+        }
+      } catch (err) {
+        console.error("Live search error:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSearchSubmit = (e?: React.FormEvent, customQuery?: string) => {
+    if (e) e.preventDefault();
+    const q = (customQuery ?? searchQuery).trim();
+    if (!q) return;
+    saveRecentSearch(q);
+    setSearchOpen(false);
+    setMobileOpen(false);
+    router.push(`/shop?q=${encodeURIComponent(q)}`);
+  };
+
+  const handleProductClick = (slug: string) => {
+    saveRecentSearch(searchQuery);
+    setSearchOpen(false);
+    setMobileOpen(false);
+    router.push(`/product/${slug}`);
+  };
 
   useEffect(() => {
     let ticking = false;
@@ -442,34 +586,227 @@ export function Header() {
             </div>
           </div>
         </nav>
-      </header>
 
-      {/* Search Bar Dropdown */}
-      {searchOpen && (
-        <div className="fixed top-14 lg:top-20 left-0 right-0 z-50 py-4 border-b border-gray-100 bg-white/95 backdrop-blur-md shadow-lg transition-all animate-in fade-in duration-200">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (searchQuery.trim()) {
-                window.location.href = `/shop?q=${encodeURIComponent(
-                  searchQuery.trim()
-                )}`;
-              }
-            }}
-            className="relative max-w-xl mx-auto px-4"
-          >
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-md focus:outline-hidden focus:border-black shadow-inner"
-              autoFocus
+        {/* Dropdown Full-Width Search Bar Attached Under Header */}
+        {searchOpen && (
+          <>
+            {/* Transparent click-outside backdrop (does not blur or dim header) */}
+            <div
+              className="fixed inset-0 z-30 cursor-default"
+              onClick={() => setSearchOpen(false)}
             />
-            <Search className="w-4 h-4 text-gray-400 absolute left-7.5 top-3.5" />
-          </form>
-        </div>
-      )}
+
+            {/* Full-width Search Bar Container - Sharp & Compact */}
+            <div className="absolute top-full left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-md transition-all animate-in slide-in-from-top-2 duration-150">
+              <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3">
+                {/* Search Form Row */}
+                <form
+                  onSubmit={(e) => handleSearchSubmit(e)}
+                  className="relative flex items-center gap-2"
+                >
+                  <div className="relative flex-1 flex items-center bg-white border border-neutral-300 focus-within:border-black rounded-none px-3 py-1.5 sm:py-2 transition-colors">
+                    {isSearching ? (
+                      <Loader2 className="w-4 h-4 text-rose-600 animate-spin shrink-0" />
+                    ) : (
+                      <Search className="w-4 h-4 text-gray-500 shrink-0" />
+                    )}
+
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search products, shapes (Almond, Coffin), themes (3D, Y2K)..."
+                      className="w-full pl-2.5 pr-6 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-hidden bg-transparent"
+                    />
+
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          searchInputRef.current?.focus();
+                        }}
+                        className="p-1 text-gray-400 hover:text-gray-700 transition-colors cursor-pointer mr-0.5"
+                        title="Clear text"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Search Submit Button - Square & Compact */}
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 sm:py-2 bg-black hover:bg-neutral-800 text-white text-xs font-bold uppercase tracking-wider rounded-none transition-colors cursor-pointer shrink-0 hidden sm:inline-flex items-center gap-1.5"
+                  >
+                    <span>Search</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Close Button */}
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen(false)}
+                    className="p-2 text-gray-500 hover:text-black hover:bg-gray-100 rounded-none transition-colors cursor-pointer shrink-0"
+                    title="Close search"
+                    aria-label="Close search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </form>
+
+                {/* Popular Searches & Quick Suggestions (When query is empty) */}
+                {!searchQuery.trim() && (
+                  <div className="mt-2.5 pt-2 border-t border-gray-100 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1 text-[10px] mr-1">
+                      <TrendingUp className="w-3 h-3 text-rose-600" /> Popular:
+                    </span>
+                    {POPULAR_SEARCHES.map((term) => (
+                      <button
+                        key={term}
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery(term);
+                          handleSearchSubmit(undefined, term);
+                        }}
+                        className="px-2.5 py-0.5 bg-neutral-100 hover:bg-black hover:text-white text-gray-700 font-medium rounded-none border border-neutral-200 transition-colors cursor-pointer text-[11px]"
+                      >
+                        {term}
+                      </button>
+                    ))}
+
+                    {recentSearches.length > 0 && (
+                      <div className="w-full flex items-center gap-2 pt-1.5 text-[11px] text-gray-500">
+                        <Clock className="w-3 h-3 text-gray-400 shrink-0" />
+                        <span className="font-semibold text-[10px] uppercase">Recent:</span>
+                        <div className="flex flex-wrap gap-1.5 flex-1">
+                          {recentSearches.slice(0, 4).map((r) => (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => {
+                                setSearchQuery(r);
+                                handleSearchSubmit(undefined, r);
+                              }}
+                              className="hover:text-rose-700 hover:underline cursor-pointer text-[11px]"
+                            >
+                              {r}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={clearRecentSearches}
+                          className="text-gray-400 hover:text-rose-600 cursor-pointer ml-auto text-[10px]"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Live Search Results Dropdown List (When query is entered) */}
+                {searchQuery.trim() && (
+                  <div className="mt-2.5 pt-2 border-t border-gray-100 max-h-[55vh] overflow-y-auto">
+                    {searchResults.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs text-gray-500 font-medium pb-0.5">
+                          <span>
+                            Found {totalSearchMatches || searchResults.length} product
+                            {(totalSearchMatches || searchResults.length) > 1 ? "s" : ""}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleSearchSubmit()}
+                            className="text-rose-600 hover:text-rose-800 font-bold hover:underline cursor-pointer flex items-center gap-1 text-xs"
+                          >
+                            <span>View all in shop</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {searchResults.map((item) => {
+                            const title = item.name || item.title || "X-ON Nails";
+                            const img =
+                              item.thumbnail ||
+                              (Array.isArray(item.images) && item.images[0]) ||
+                              (item as any).image ||
+                              "/images/IMG_7098.webp";
+                            const priceVal =
+                              typeof item.price === "number"
+                                ? `$${item.price.toFixed(2)}`
+                                : String(item.price).startsWith("$")
+                                ? item.price
+                                : `$${item.price}`;
+
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => handleProductClick(item.slug)}
+                                className="group flex items-center gap-2.5 p-2 border border-gray-200 hover:border-black transition-colors cursor-pointer bg-white rounded-none"
+                              >
+                                <div className="relative w-10 h-10 overflow-hidden bg-gray-100 shrink-0 border border-gray-100 rounded-none">
+                                  <Image
+                                    src={img}
+                                    alt={title}
+                                    fill
+                                    sizes="40px"
+                                    className="object-cover group-hover:scale-105 transition-transform"
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h4 className="text-xs font-bold text-gray-900 group-hover:text-rose-700 transition-colors truncate">
+                                    {title}
+                                  </h4>
+                                  <div className="flex items-center justify-between mt-0.5">
+                                    <span className="text-xs font-bold text-gray-900">
+                                      {priceVal}
+                                    </span>
+                                    {item.category && (
+                                      <span className="bg-gray-100 text-[9px] uppercase font-semibold text-gray-600 px-1 py-0.5 rounded-none truncate max-w-[85px]">
+                                        {item.category}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : !isSearching ? (
+                      <div className="py-4 text-center space-y-2">
+                        <p className="text-xs text-gray-600">
+                          No products found for{" "}
+                          <span className="font-bold text-black">&quot;{searchQuery}&quot;</span>
+                        </p>
+                        <div className="pt-0.5 flex flex-wrap justify-center gap-1">
+                          {POPULAR_SEARCHES.slice(0, 5).map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => {
+                                setSearchQuery(t);
+                                handleSearchSubmit(undefined, t);
+                              }}
+                              className="px-2 py-0.5 bg-neutral-100 hover:bg-black hover:text-white text-gray-700 text-[11px] rounded-none border border-neutral-200 transition-colors cursor-pointer"
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </header>
 
       {/* Off-Canvas Sidebar / Drawer */}
       {mobileOpen && (
@@ -481,16 +818,41 @@ export function Header() {
           />
 
           {/* Drawer container */}
-          <div className="fixed inset-y-0 left-0 w-64 sm:w-72 bg-white shadow-2xl z-50 flex flex-col transform transition-transform animate-in slide-in-from-left duration-300 overflow-y-auto no-scrollbar">
-            {/* Top Bar with faint hamburger icon */}
-            <div className="pt-6 pb-2 px-6">
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="text-neutral-300 hover:text-neutral-700 transition-colors cursor-pointer"
-                aria-label="Close menu"
+          <div className="fixed inset-y-0 left-0 w-72 bg-white shadow-2xl z-50 flex flex-col transform transition-transform animate-in slide-in-from-left duration-300 overflow-y-auto no-scrollbar">
+            {/* Top Bar with faint hamburger icon and search */}
+            <div className="pt-5 pb-3 px-5 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                  Navigation
+                </span>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="text-neutral-400 hover:text-neutral-800 transition-colors p-1 cursor-pointer"
+                  aria-label="Close menu"
+                >
+                  <X className="w-5 h-5 stroke-[1.5]" />
+                </button>
+              </div>
+
+              {/* Mobile Drawer Search Box */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const q = (e.currentTarget.elements.namedItem("drawerSearch") as HTMLInputElement)?.value;
+                  if (q && q.trim()) {
+                    handleSearchSubmit(undefined, q.trim());
+                  }
+                }}
+                className="relative"
               >
-                <Menu className="w-5 h-5 stroke-[1.5]" />
-              </button>
+                <input
+                  name="drawerSearch"
+                  type="text"
+                  placeholder="Search nails..."
+                  className="w-full pl-8 pr-3 py-2 text-xs bg-neutral-50 border border-gray-200 rounded-lg focus:outline-hidden focus:border-black transition-colors"
+                />
+                <Search className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" />
+              </form>
             </div>
 
             {/* Menu Links List */}
