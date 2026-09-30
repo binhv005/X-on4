@@ -1098,20 +1098,10 @@ export default function AdminEditor({
   const [selectedFontFamily, setSelectedFontFamily] = useState("Inter");
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right" | "justify">("left");
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
-  const toggleDropdown = (name: string, e: React.MouseEvent<HTMLElement>) => {
-    e.preventDefault();
-    if (activeDropdown === name) {
-      setActiveDropdown(null);
-    } else {
-      const rect = e.currentTarget.getBoundingClientRect();
-      setDropdownPos({
-        top: rect.bottom + 4,
-        left: Math.max(8, Math.min(rect.left, (typeof window !== "undefined" ? window.innerWidth : 1200) - 240)),
-      });
-      setActiveDropdown(name);
-    }
+  const toggleDropdown = (name: string, e?: React.MouseEvent<HTMLElement>) => {
+    e?.preventDefault();
+    setActiveDropdown((prev) => (prev === name ? null : name));
   };
 
   const closeAllDropdowns = () => {
@@ -2023,11 +2013,8 @@ export default function AdminEditor({
           </div>
         </div>
 
-        {/* Formatting Toolbar (Single Compact Row with Horizontal Scroll) */}
-        <div
-          className="w-full flex items-center gap-0.5 sm:gap-1 pt-1 pb-1 overflow-x-auto scrollbar-none relative z-40 flex-nowrap"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
+        {/* Formatting Toolbar (Single Compact Row) */}
+        <div className="w-full flex items-center gap-0.5 sm:gap-1 pt-1 pb-1 overflow-visible relative z-40 flex-nowrap">
           {/* Font Family Dropdown */}
           <div className="relative shrink-0">
             <button
@@ -2049,8 +2036,7 @@ export default function AdminEditor({
             </button>
             {isFontFamilyDropdownOpen && (
               <div
-                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
-                className="w-48 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
+                className="absolute top-full left-0 mt-1 z-50 w-48 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
               >
                 {FONT_FAMILY_OPTIONS.map((f) => {
                   const isSelected =
@@ -2104,8 +2090,7 @@ export default function AdminEditor({
             </button>
             {isFontSizeDropdownOpen && (
               <div
-                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
-                className="w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
+                className="absolute top-full left-0 mt-1 z-50 w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
               >
                 {FONT_SIZE_OPTIONS.map((opt) => {
                   const currentNum = String(selectedFontSize).replace(/[^0-9]/g, "");
@@ -2152,8 +2137,7 @@ export default function AdminEditor({
             </button>
             {isHeadingDropdownOpen && (
               <div
-                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
-                className="w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-72 overflow-y-auto"
+                className="absolute top-full left-0 mt-1 z-50 w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-72 overflow-y-auto"
               >
                 {HEADING_OPTIONS.map((h) => {
                   const isSelected = selectedHeadingLevel === h.level;
@@ -2276,8 +2260,7 @@ export default function AdminEditor({
             </button>
             {isTextColorPickerOpen && (
               <div
-                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
-                className="w-52 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
+                className="absolute top-full left-0 mt-1 z-50 w-52 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
               >
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   Text Color
@@ -2334,8 +2317,7 @@ export default function AdminEditor({
             </button>
             {isHighlightPickerOpen && (
               <div
-                style={{ position: "fixed", top: dropdownPos.top, left: dropdownPos.left, zIndex: 9999 }}
-                className="w-48 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
+                className="absolute top-full left-0 mt-1 z-50 w-48 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
               >
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   Highlight Color
