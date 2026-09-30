@@ -1098,14 +1098,27 @@ export default function AdminEditor({
   const [selectedFontFamily, setSelectedFontFamily] = useState("Inter");
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right" | "justify">("left");
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [dropdownCoords, setDropdownCoords] = useState<{ top: number; left: number } | null>(null);
 
   const toggleDropdown = (name: string, e?: React.MouseEvent<HTMLElement>) => {
     e?.preventDefault();
-    setActiveDropdown((prev) => (prev === name ? null : name));
+    if (activeDropdown === name) {
+      setActiveDropdown(null);
+      setDropdownCoords(null);
+    } else {
+      if (e?.currentTarget) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const popupWidth = name === "fontFamily" ? 192 : name === "textColor" ? 210 : 160;
+        const left = Math.max(8, Math.min(rect.left, window.innerWidth - popupWidth - 12));
+        setDropdownCoords({ top: rect.bottom + 6, left });
+      }
+      setActiveDropdown(name);
+    }
   };
 
   const closeAllDropdowns = () => {
     setActiveDropdown(null);
+    setDropdownCoords(null);
   };
 
   const isTextColorPickerOpen = activeDropdown === "textColor";
@@ -2020,9 +2033,9 @@ export default function AdminEditor({
           {/* Article Container Card */}
           <div className="bg-white dark:bg-[#1a1426] rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200 dark:border-[#2c2835] space-y-6">
             
-            {/* Formatting Toolbar (Embedded neatly inside the Article Card) */}
-            <div className="sticky top-4 z-30 bg-slate-50/95 dark:bg-[#151022]/95 backdrop-blur-md rounded-2xl p-2 border border-slate-200/80 dark:border-white/10 shadow-xs overflow-visible">
-              <div className="w-full flex flex-wrap items-center gap-1 sm:gap-1.5">
+            {/* Formatting Toolbar (Embedded neatly inside Article Card, single row with horizontal scroll) */}
+            <div className="sticky top-4 z-30 bg-slate-50/95 dark:bg-[#151022]/95 backdrop-blur-md rounded-2xl p-2 border border-slate-200/80 dark:border-white/10 shadow-xs max-w-full overflow-hidden">
+              <div className="w-full flex items-center gap-1 sm:gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-0.5 scroll-smooth whitespace-nowrap">
                 {/* Font Family Dropdown */}
                 <div className="relative shrink-0">
                   <button
@@ -2042,9 +2055,10 @@ export default function AdminEditor({
                     <span className="font-medium text-xs max-w-[64px] truncate">{selectedFontFamily}</span>
                     <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span>
                   </button>
-                  {isFontFamilyDropdownOpen && (
+                  {isFontFamilyDropdownOpen && dropdownCoords && (
                     <div
-                      className="absolute top-full left-0 mt-1 z-50 w-48 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
+                      style={{ top: dropdownCoords.top, left: dropdownCoords.left }}
+                      className="fixed z-[9999] w-48 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
                     >
                       {FONT_FAMILY_OPTIONS.map((f) => {
                         const isSelected =
@@ -2054,7 +2068,10 @@ export default function AdminEditor({
                             key={f.label}
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => applyFontFamilyToSelection(f.value, f.name)}
+                            onClick={() => {
+                              applyFontFamilyToSelection(f.value, f.name);
+                              closeAllDropdowns();
+                            }}
                             className={`w-full text-left px-2 py-1.5 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
                               isSelected
                                 ? "bg-rose-500 text-white font-bold"
@@ -2096,9 +2113,10 @@ export default function AdminEditor({
                     </span>
                     <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span>
                   </button>
-                  {isFontSizeDropdownOpen && (
+                  {isFontSizeDropdownOpen && dropdownCoords && (
                     <div
-                      className="absolute top-full left-0 mt-1 z-50 w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
+                      style={{ top: dropdownCoords.top, left: dropdownCoords.left }}
+                      className="fixed z-[9999] w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
                     >
                       {FONT_SIZE_OPTIONS.map((opt) => {
                         const currentNum = String(selectedFontSize).replace(/[^0-9]/g, "");
@@ -2108,7 +2126,10 @@ export default function AdminEditor({
                             key={opt.value}
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => applyFontSizeToSelection(opt.value)}
+                            onClick={() => {
+                              applyFontSizeToSelection(opt.value);
+                              closeAllDropdowns();
+                            }}
                             className={`w-full text-left px-2 py-1.5 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
                               isSelected
                                 ? "bg-rose-500 text-white font-bold"
@@ -2143,9 +2164,10 @@ export default function AdminEditor({
                     <span className="text-xs">H{selectedHeadingLevel}</span>
                     <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span>
                   </button>
-                  {isHeadingDropdownOpen && (
+                  {isHeadingDropdownOpen && dropdownCoords && (
                     <div
-                      className="absolute top-full left-0 mt-1 z-50 w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-72 overflow-y-auto"
+                      style={{ top: dropdownCoords.top, left: dropdownCoords.left }}
+                      className="fixed z-[9999] w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-72 overflow-y-auto"
                     >
                       {HEADING_OPTIONS.map((h) => {
                         const isSelected = selectedHeadingLevel === h.level;
@@ -2154,7 +2176,10 @@ export default function AdminEditor({
                             key={h.level}
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => applyHeadingToSelection(h.level)}
+                            onClick={() => {
+                              applyHeadingToSelection(h.level);
+                              closeAllDropdowns();
+                            }}
                             className={`w-full text-left px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2 ${
                               isSelected
                                 ? "bg-rose-500 text-white font-bold"
@@ -2266,9 +2291,10 @@ export default function AdminEditor({
                       format_color_text
                     </span>
                   </button>
-                  {isTextColorPickerOpen && (
+                  {isTextColorPickerOpen && dropdownCoords && (
                     <div
-                      className="absolute top-full left-0 mt-1 z-50 w-52 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
+                      style={{ top: dropdownCoords.top, left: dropdownCoords.left }}
+                      className="fixed z-[9999] w-52 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
                     >
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         Text Color
@@ -2279,7 +2305,10 @@ export default function AdminEditor({
                             key={c.value}
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => applyTextColorToSelection(c.value)}
+                            onClick={() => {
+                              applyTextColorToSelection(c.value);
+                              closeAllDropdowns();
+                            }}
                             style={{ backgroundColor: c.value }}
                             className="w-7 h-7 rounded-lg border border-white/20 shadow-xs hover:scale-110 active:scale-95 transition-all cursor-pointer"
                             title={c.label}
@@ -2296,7 +2325,10 @@ export default function AdminEditor({
                         <button
                           type="button"
                           onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => applyTextColorToSelection(customColorHex)}
+                          onClick={() => {
+                            applyTextColorToSelection(customColorHex);
+                            closeAllDropdowns();
+                          }}
                           className="flex-1 py-1 bg-slate-100 dark:bg-white/10 hover:bg-rose-500 hover:text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
                         >
                           Apply Hex
@@ -2323,9 +2355,10 @@ export default function AdminEditor({
                       ink_highlighter
                     </span>
                   </button>
-                  {isHighlightPickerOpen && (
+                  {isHighlightPickerOpen && dropdownCoords && (
                     <div
-                      className="absolute top-full left-0 mt-1 z-50 w-48 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
+                      style={{ top: dropdownCoords.top, left: dropdownCoords.left }}
+                      className="fixed z-[9999] w-48 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
                     >
                       <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                         Highlight Color
@@ -2336,7 +2369,10 @@ export default function AdminEditor({
                             key={c.label}
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => applyHighlightColorToSelection(c.value)}
+                            onClick={() => {
+                              applyHighlightColorToSelection(c.value);
+                              closeAllDropdowns();
+                            }}
                             style={{
                               backgroundColor: c.value === "transparent" ? "#f1f5f9" : c.value,
                             }}
