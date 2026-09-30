@@ -1952,39 +1952,38 @@ export default function AdminEditor({
         }}
       />
 
-      {/* Top Navigation Header (Row 1) & Formatting Toolbar (Row 2) */}
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-[#15111d]/95 backdrop-blur-md border-b border-slate-200 dark:border-[#2c2835] px-3 sm:px-4 py-1.5 shadow-xs overflow-visible">
-        {/* Transparent Backdrop to close any open dropdowns when clicking outside */}
-        {activeDropdown && (
-          <div
-            className="fixed inset-0 z-[9990]"
-            onClick={closeAllDropdowns}
-          />
-        )}
+      {/* Transparent Backdrop to close any open dropdowns when clicking outside */}
+      {activeDropdown && (
+        <div
+          className="fixed inset-0 z-[9990]"
+          onClick={closeAllDropdowns}
+        />
+      )}
 
-        {/* Row 1: Navigation, Article Info & Publish/Save Actions */}
-        <div className="w-full flex items-center justify-between gap-3 pb-1.5 border-b border-slate-100 dark:border-white/5 relative z-40">
+      {/* Top Action Bar: Navigation, Title & Publish/Save */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6">
+        <div className="w-full bg-white dark:bg-[#1a1426] rounded-2xl p-3 sm:p-4 shadow-sm border border-slate-200 dark:border-[#2c2835] flex items-center justify-between gap-3">
           {/* Left: Back & Title/Status */}
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             {onExit && (
               <button
                 type="button"
                 onClick={onExit}
-                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer shrink-0"
+                className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer shrink-0"
               >
-                <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
                 <span className="hidden sm:inline">Back</span>
               </button>
             )}
 
-            <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0" />
+            <div className="h-4 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0" />
 
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+            <span className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px] sm:max-w-xs md:max-w-md">
               {title || "Untitled Article"}
             </span>
 
             <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+              className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold shrink-0 ${
                 isPublic
                   ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                   : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
@@ -1996,549 +1995,22 @@ export default function AdminEditor({
 
           {/* Right: Save / Publish */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Save & Publish Button */}
             <button
               type="button"
               onClick={handleSaveDocument}
               disabled={isSaving}
-              className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer whitespace-nowrap"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white font-bold text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5 disabled:opacity-50 transition-all cursor-pointer whitespace-nowrap"
             >
               {isSaving ? (
                 <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
-                <span className="material-symbols-outlined text-[15px]">publish</span>
+                <span className="material-symbols-outlined text-[16px]">publish</span>
               )}
               <span>{isPublic ? "Publish" : "Save Draft"}</span>
             </button>
           </div>
         </div>
-
-        {/* Formatting Toolbar (Single Compact Row) */}
-        <div className="w-full flex items-center gap-0.5 sm:gap-1 pt-1 pb-1 overflow-visible relative z-40 flex-nowrap">
-          {/* Font Family Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                saveCurrentSelection();
-              }}
-              onClick={(e) => toggleDropdown("fontFamily", e)}
-              className={`px-1.5 py-0.5 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors cursor-pointer ${
-                isFontFamilyDropdownOpen
-                  ? "bg-rose-500 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200"
-              }`}
-              title="Font Family"
-            >
-              <span className="font-medium text-xs max-w-[56px] truncate">{selectedFontFamily}</span>
-              <span className="material-symbols-outlined text-[13px]">arrow_drop_down</span>
-            </button>
-            {isFontFamilyDropdownOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 z-50 w-48 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
-              >
-                {FONT_FAMILY_OPTIONS.map((f) => {
-                  const isSelected =
-                    selectedFontFamily === f.name || selectedFontFamily === f.label.split(" ")[0];
-                  return (
-                    <button
-                      key={f.label}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => applyFontFamilyToSelection(f.value, f.name)}
-                      className={`w-full text-left px-2 py-1.5 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
-                        isSelected
-                          ? "bg-rose-500 text-white font-bold"
-                          : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600"
-                      }`}
-                    >
-                      <span style={{ fontFamily: f.value }} className="font-medium">
-                        {f.name}
-                      </span>
-                      <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-slate-400"}`}>
-                        {f.desc}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Font Size Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                saveCurrentSelection();
-              }}
-              onClick={(e) => toggleDropdown("fontSize", e)}
-              className={`px-1.5 py-0.5 rounded text-xs font-semibold flex items-center gap-0.5 transition-colors cursor-pointer ${
-                isFontSizeDropdownOpen
-                  ? "bg-rose-500 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200"
-              }`}
-              title="Font Size"
-            >
-              <span className="material-symbols-outlined text-[13px]">format_size</span>
-              <span className="font-bold min-w-3 text-center text-xs">
-                {String(selectedFontSize).replace(/[^0-9]/g, "") || "16"}
-              </span>
-              <span className="material-symbols-outlined text-[13px]">arrow_drop_down</span>
-            </button>
-            {isFontSizeDropdownOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 z-50 w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
-              >
-                {FONT_SIZE_OPTIONS.map((opt) => {
-                  const currentNum = String(selectedFontSize).replace(/[^0-9]/g, "");
-                  const isSelected = currentNum === opt.size || selectedFontSize === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => applyFontSizeToSelection(opt.value)}
-                      className={`w-full text-left px-2 py-1.5 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
-                        isSelected
-                          ? "bg-rose-500 text-white font-bold"
-                          : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600"
-                      }`}
-                    >
-                      <span className="font-bold">{opt.size}</span>
-                      <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-slate-400"}`}>
-                        {opt.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Heading Level Dropdown (H1 - H6) */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) => toggleDropdown("heading", e)}
-              className={`px-1.5 py-0.5 rounded text-xs font-bold flex items-center gap-0.5 transition-colors cursor-pointer ${
-                isHeadingDropdownOpen
-                  ? "bg-rose-500 text-white shadow-xs"
-                  : "bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200"
-              }`}
-              title="Choose Heading Level (H1 - H6)"
-            >
-              <span className="material-symbols-outlined text-[13px]">title</span>
-              <span className="text-xs">H{selectedHeadingLevel}</span>
-              <span className="material-symbols-outlined text-[12px]">arrow_drop_down</span>
-            </button>
-            {isHeadingDropdownOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 z-50 w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-72 overflow-y-auto"
-              >
-                {HEADING_OPTIONS.map((h) => {
-                  const isSelected = selectedHeadingLevel === h.level;
-                  return (
-                    <button
-                      key={h.level}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => applyHeadingToSelection(h.level)}
-                      className={`w-full text-left px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2 ${
-                        isSelected
-                          ? "bg-rose-500 text-white font-bold"
-                          : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600"
-                      }`}
-                    >
-                      <span
-                        className={`font-mono font-bold text-[11px] px-1.5 py-0.5 rounded ${
-                          isSelected
-                            ? "bg-white/20 text-white"
-                            : "bg-slate-100 dark:bg-white/10 text-rose-500"
-                        }`}
-                      >
-                        {h.label}
-                      </span>
-                      <span className={`text-xs ${isSelected ? "text-white font-bold" : "font-medium"}`}>
-                        {h.name}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
-
-          {/* Inline Formatting Tools */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => executeCommand("bold")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                isBoldActive
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Bold (Ctrl+B)"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_bold</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => executeCommand("italic")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                isItalicActive
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Italic (Ctrl+I)"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_italic</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => executeCommand("underline")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                isUnderlineActive
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Underline (Ctrl+U)"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_underlined</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => executeCommand("strikeThrough")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                isStrikethroughActive
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Strikethrough"
-            >
-              <span className="material-symbols-outlined text-[14px]">strikethrough_s</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={applyInlineCodeToSelection}
-              className="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
-              title="Inline Code Tag"
-            >
-              <span className="material-symbols-outlined text-[14px]">code</span>
-            </button>
-          </div>
-
-          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
-
-          {/* Text Color Picker */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) => toggleDropdown("textColor", e)}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                isTextColorPickerOpen
-                  ? "bg-rose-500/15 text-rose-600"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Text Color"
-            >
-              <span className="material-symbols-outlined text-[14px] text-rose-500">
-                format_color_text
-              </span>
-            </button>
-            {isTextColorPickerOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 z-50 w-52 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
-              >
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  Text Color
-                </span>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {TEXT_COLOR_PALETTE.map((c) => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => applyTextColorToSelection(c.value)}
-                      style={{ backgroundColor: c.value }}
-                      className="w-7 h-7 rounded-lg border border-white/20 shadow-xs hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                      title={c.label}
-                    />
-                  ))}
-                </div>
-                <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={customColorHex}
-                    onChange={(e) => setCustomColorHex(e.target.value)}
-                    className="w-7 h-7 rounded-lg cursor-pointer border-0 p-0"
-                  />
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => applyTextColorToSelection(customColorHex)}
-                    className="flex-1 py-1 bg-slate-100 dark:bg-white/10 hover:bg-rose-500 hover:text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
-                  >
-                    Apply Hex
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Highlight Background Picker */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) => toggleDropdown("highlight", e)}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                isHighlightPickerOpen
-                  ? "bg-amber-500/15 text-amber-600"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Highlight Background"
-            >
-              <span className="material-symbols-outlined text-[14px] text-amber-500">
-                ink_highlighter
-              </span>
-            </button>
-            {isHighlightPickerOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 z-50 w-48 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
-              >
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  Highlight Color
-                </span>
-                <div className="grid grid-cols-3 gap-2">
-                  {HIGHLIGHT_COLOR_PALETTE.map((c) => (
-                    <button
-                      key={c.label}
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => applyHighlightColorToSelection(c.value)}
-                      style={{
-                        backgroundColor: c.value === "transparent" ? "#f1f5f9" : c.value,
-                      }}
-                      className="py-1 px-1.5 rounded-lg text-[10px] font-medium text-slate-800 border border-slate-300 dark:border-white/10 shadow-xs hover:scale-105 transition-all cursor-pointer text-center"
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Clear Formatting */}
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={applyClearFormatting}
-            className="w-6 h-6 flex items-center justify-center rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
-            title="Clear Formatting"
-          >
-            <span className="material-symbols-outlined text-[14px]">format_clear</span>
-          </button>
-
-          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
-
-          {/* Alignments */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => applyAlignmentToSelection("left")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                textAlign === "left"
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Align Left"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_align_left</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => applyAlignmentToSelection("center")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                textAlign === "center"
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Align Center"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_align_center</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => applyAlignmentToSelection("right")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                textAlign === "right"
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Align Right"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_align_right</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => applyAlignmentToSelection("justify")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                textAlign === "justify"
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Justify"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_align_justify</span>
-            </button>
-          </div>
-
-          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
-
-          {/* Lists */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => executeCommand("insertUnorderedList")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                isBulletListActive
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Bullet List"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_list_bulleted</span>
-            </button>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => executeCommand("insertOrderedList")}
-              className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors cursor-pointer ${
-                isNumberedListActive
-                  ? "bg-rose-500/15 text-rose-600 font-bold"
-                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10"
-              }`}
-              title="Numbered List"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_list_numbered</span>
-            </button>
-          </div>
-
-          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
-
-          {/* Insert Link & Media */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                saveCurrentSelection();
-              }}
-              onClick={() => {
-                saveCurrentSelection();
-                openPrompt({
-                  title: "Insert Hyperlink",
-                  description: "Enter destination URL for selected text:",
-                  placeholder: "https://example.com...",
-                  icon: "link",
-                  iconColor: "sky",
-                  onConfirm: (url) => {
-                    applyLinkToSelection(url);
-                  },
-                });
-              }}
-              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
-              title="Insert Link"
-            >
-              <span className="material-symbols-outlined text-[14px]">link</span>
-              <span>Link</span>
-            </button>
-
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => fileInputRef.current?.click()}
-              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
-              title="Upload WebP Image"
-            >
-              <span className="material-symbols-outlined text-[14px]">image</span>
-              <span>Image</span>
-            </button>
-
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => videoFileInputRef.current?.click()}
-              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
-              title="Tải video từ máy (MP4, WebM, MOV...)"
-            >
-              {isUploadingVideo ? (
-                <span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-rose-500 rounded-full animate-spin" />
-              ) : (
-                <span className="material-symbols-outlined text-[14px]">smart_display</span>
-              )}
-              <span>Video</span>
-            </button>
-          </div>
-
-          <div className="h-3.5 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
-
-          {/* Quick Add Block Shortcuts */}
-          <div className="flex items-center gap-0.5 shrink-0">
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => addBlock("quote")}
-              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
-              title="Add Quote Block"
-            >
-              <span className="material-symbols-outlined text-[14px]">format_quote</span>
-              <span>Quote</span>
-            </button>
-
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => addBlock("table")}
-              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
-              title="Add Table Block"
-            >
-              <span className="material-symbols-outlined text-[14px]">table_chart</span>
-              <span>Table</span>
-            </button>
-
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => addBlock("columns")}
-              className="px-1.5 py-0.5 rounded text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors flex items-center gap-1 cursor-pointer"
-              title="Add 2-Column Block"
-            >
-              <span className="material-symbols-outlined text-[14px]">view_column</span>
-              <span>2-Col</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      </div>
 
       {/* Main Grid Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -2546,7 +2018,536 @@ export default function AdminEditor({
         <main className="lg:col-span-8 space-y-6">
 
           {/* Article Container Card */}
-          <div className="bg-white dark:bg-[#1a1426] rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200 dark:border-[#2c2835] space-y-6">
+          <div className="bg-white dark:bg-[#1a1426] rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200 dark:border-[#2c2835] space-y-6">
+            
+            {/* Formatting Toolbar (Embedded neatly inside the Article Card) */}
+            <div className="sticky top-4 z-30 bg-slate-50/95 dark:bg-[#151022]/95 backdrop-blur-md rounded-2xl p-2 border border-slate-200/80 dark:border-white/10 shadow-xs overflow-visible">
+              <div className="w-full flex flex-wrap items-center gap-1 sm:gap-1.5">
+                {/* Font Family Dropdown */}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      saveCurrentSelection();
+                    }}
+                    onClick={(e) => toggleDropdown("fontFamily", e)}
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-0.5 transition-colors cursor-pointer ${
+                      isFontFamilyDropdownOpen
+                        ? "bg-rose-500 text-white shadow-xs"
+                        : "bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-transparent"
+                    }`}
+                    title="Font Family"
+                  >
+                    <span className="font-medium text-xs max-w-[64px] truncate">{selectedFontFamily}</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+                  </button>
+                  {isFontFamilyDropdownOpen && (
+                    <div
+                      className="absolute top-full left-0 mt-1 z-50 w-48 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
+                    >
+                      {FONT_FAMILY_OPTIONS.map((f) => {
+                        const isSelected =
+                          selectedFontFamily === f.name || selectedFontFamily === f.label.split(" ")[0];
+                        return (
+                          <button
+                            key={f.label}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => applyFontFamilyToSelection(f.value, f.name)}
+                            className={`w-full text-left px-2 py-1.5 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
+                              isSelected
+                                ? "bg-rose-500 text-white font-bold"
+                                : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600"
+                            }`}
+                          >
+                            <span style={{ fontFamily: f.value }} className="font-medium">
+                              {f.name}
+                            </span>
+                            <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-slate-400"}`}>
+                              {f.desc}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Font Size Dropdown */}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      saveCurrentSelection();
+                    }}
+                    onClick={(e) => toggleDropdown("fontSize", e)}
+                    className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-0.5 transition-colors cursor-pointer ${
+                      isFontSizeDropdownOpen
+                        ? "bg-rose-500 text-white shadow-xs"
+                        : "bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-transparent"
+                    }`}
+                    title="Font Size"
+                  >
+                    <span className="material-symbols-outlined text-[13px]">format_size</span>
+                    <span className="font-bold min-w-3 text-center text-xs">
+                      {String(selectedFontSize).replace(/[^0-9]/g, "") || "16"}
+                    </span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+                  </button>
+                  {isFontSizeDropdownOpen && (
+                    <div
+                      className="absolute top-full left-0 mt-1 z-50 w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-64 overflow-y-auto"
+                    >
+                      {FONT_SIZE_OPTIONS.map((opt) => {
+                        const currentNum = String(selectedFontSize).replace(/[^0-9]/g, "");
+                        const isSelected = currentNum === opt.size || selectedFontSize === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => applyFontSizeToSelection(opt.value)}
+                            className={`w-full text-left px-2 py-1.5 text-xs rounded-lg transition-colors cursor-pointer flex items-center justify-between ${
+                              isSelected
+                                ? "bg-rose-500 text-white font-bold"
+                                : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600"
+                            }`}
+                          >
+                            <span className="font-bold">{opt.size}</span>
+                            <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-slate-400"}`}>
+                              {opt.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Heading Level Dropdown (H1 - H6) */}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => toggleDropdown("heading", e)}
+                    className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-0.5 transition-colors cursor-pointer ${
+                      isHeadingDropdownOpen
+                        ? "bg-rose-500 text-white shadow-xs"
+                        : "bg-white dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-transparent"
+                    }`}
+                    title="Choose Heading Level (H1 - H6)"
+                  >
+                    <span className="material-symbols-outlined text-[13px]">title</span>
+                    <span className="text-xs">H{selectedHeadingLevel}</span>
+                    <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+                  </button>
+                  {isHeadingDropdownOpen && (
+                    <div
+                      className="absolute top-full left-0 mt-1 z-50 w-36 bg-white dark:bg-[#1f1a29] rounded-xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-1.5 animate-in fade-in zoom-in-95 duration-100 space-y-0.5 max-h-72 overflow-y-auto"
+                    >
+                      {HEADING_OPTIONS.map((h) => {
+                        const isSelected = selectedHeadingLevel === h.level;
+                        return (
+                          <button
+                            key={h.level}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => applyHeadingToSelection(h.level)}
+                            className={`w-full text-left px-2 py-1.5 rounded-lg transition-colors cursor-pointer flex items-center gap-2 ${
+                              isSelected
+                                ? "bg-rose-500 text-white font-bold"
+                                : "text-slate-700 dark:text-slate-200 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600"
+                            }`}
+                          >
+                            <span
+                              className={`font-mono font-bold text-[11px] px-1.5 py-0.5 rounded ${
+                                isSelected
+                                  ? "bg-white/20 text-white"
+                                  : "bg-slate-100 dark:bg-white/10 text-rose-500"
+                              }`}
+                            >
+                              {h.label}
+                            </span>
+                            <span className={`text-xs ${isSelected ? "text-white font-bold" : "font-medium"}`}>
+                              {h.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+                {/* Inline Formatting Tools */}
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => executeCommand("bold")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      isBoldActive
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Bold (Ctrl+B)"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_bold</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => executeCommand("italic")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      isItalicActive
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Italic (Ctrl+I)"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_italic</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => executeCommand("underline")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      isUnderlineActive
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Underline (Ctrl+U)"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_underlined</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => executeCommand("strikeThrough")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      isStrikethroughActive
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Strikethrough"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">strikethrough_s</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={applyInlineCodeToSelection}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer"
+                    title="Inline Code Tag"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">code</span>
+                  </button>
+                </div>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+                {/* Text Color Picker */}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => toggleDropdown("textColor", e)}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      isTextColorPickerOpen
+                        ? "bg-rose-500/15 text-rose-600"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Text Color"
+                  >
+                    <span className="material-symbols-outlined text-[15px] text-rose-500">
+                      format_color_text
+                    </span>
+                  </button>
+                  {isTextColorPickerOpen && (
+                    <div
+                      className="absolute top-full left-0 mt-1 z-50 w-52 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
+                    >
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        Text Color
+                      </span>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {TEXT_COLOR_PALETTE.map((c) => (
+                          <button
+                            key={c.value}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => applyTextColorToSelection(c.value)}
+                            style={{ backgroundColor: c.value }}
+                            className="w-7 h-7 rounded-lg border border-white/20 shadow-xs hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                            title={c.label}
+                          />
+                        ))}
+                      </div>
+                      <div className="pt-2 border-t border-slate-100 dark:border-white/5 flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={customColorHex}
+                          onChange={(e) => setCustomColorHex(e.target.value)}
+                          className="w-7 h-7 rounded-lg cursor-pointer border-0 p-0"
+                        />
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => applyTextColorToSelection(customColorHex)}
+                          className="flex-1 py-1 bg-slate-100 dark:bg-white/10 hover:bg-rose-500 hover:text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                        >
+                          Apply Hex
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Highlight Background Picker */}
+                <div className="relative shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={(e) => toggleDropdown("highlight", e)}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      isHighlightPickerOpen
+                        ? "bg-amber-500/15 text-amber-600"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Highlight Background"
+                  >
+                    <span className="material-symbols-outlined text-[15px] text-amber-500">
+                      ink_highlighter
+                    </span>
+                  </button>
+                  {isHighlightPickerOpen && (
+                    <div
+                      className="absolute top-full left-0 mt-1 z-50 w-48 bg-white dark:bg-[#1f1a29] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2c2835] p-3 animate-in fade-in zoom-in-95 duration-100 space-y-2"
+                    >
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        Highlight Color
+                      </span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {HIGHLIGHT_COLOR_PALETTE.map((c) => (
+                          <button
+                            key={c.label}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => applyHighlightColorToSelection(c.value)}
+                            style={{
+                              backgroundColor: c.value === "transparent" ? "#f1f5f9" : c.value,
+                            }}
+                            className="py-1 px-1.5 rounded-lg text-[10px] font-medium text-slate-800 border border-slate-300 dark:border-white/10 shadow-xs hover:scale-105 transition-all cursor-pointer text-center"
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Clear Formatting */}
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={applyClearFormatting}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+                  title="Clear Formatting"
+                >
+                  <span className="material-symbols-outlined text-[15px]">format_clear</span>
+                </button>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+                {/* Alignments */}
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyAlignmentToSelection("left")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      textAlign === "left"
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Align Left"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_align_left</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyAlignmentToSelection("center")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      textAlign === "center"
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Align Center"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_align_center</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyAlignmentToSelection("right")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      textAlign === "right"
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Align Right"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_align_right</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => applyAlignmentToSelection("justify")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      textAlign === "justify"
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Justify"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_align_justify</span>
+                  </button>
+                </div>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+                {/* Lists */}
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => executeCommand("insertUnorderedList")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      isBulletListActive
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Bullet List"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_list_bulleted</span>
+                  </button>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => executeCommand("insertOrderedList")}
+                    className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+                      isNumberedListActive
+                        ? "bg-rose-500/15 text-rose-600 font-bold"
+                        : "text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10"
+                    }`}
+                    title="Numbered List"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_list_numbered</span>
+                  </button>
+                </div>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+                {/* Insert Link & Media */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      saveCurrentSelection();
+                    }}
+                    onClick={() => {
+                      saveCurrentSelection();
+                      openPrompt({
+                        title: "Insert Hyperlink",
+                        description: "Enter destination URL for selected text:",
+                        placeholder: "https://example.com...",
+                        icon: "link",
+                        iconColor: "sky",
+                        onConfirm: (url) => {
+                          applyLinkToSelection(url);
+                        },
+                      });
+                    }}
+                    className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 border border-slate-200/60 dark:border-transparent transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Insert Link"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">link</span>
+                    <span>Link</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 border border-slate-200/60 dark:border-transparent transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Upload WebP Image"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">image</span>
+                    <span>Image</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => videoFileInputRef.current?.click()}
+                    className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 border border-slate-200/60 dark:border-transparent transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Tải video từ máy (MP4, WebM, MOV...)"
+                  >
+                    {isUploadingVideo ? (
+                      <span className="w-3.5 h-3.5 border-2 border-slate-400 border-t-rose-500 rounded-full animate-spin" />
+                    ) : (
+                      <span className="material-symbols-outlined text-[15px]">smart_display</span>
+                    )}
+                    <span>Video</span>
+                  </button>
+                </div>
+
+                <div className="h-4 w-px bg-slate-200 dark:bg-[#2c2835] shrink-0 mx-0.5" />
+
+                {/* Quick Add Block Shortcuts */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => addBlock("quote")}
+                    className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 border border-slate-200/60 dark:border-transparent transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Add Quote Block"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">format_quote</span>
+                    <span>Quote</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => addBlock("table")}
+                    className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 border border-slate-200/60 dark:border-transparent transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Add Table Block"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">table_chart</span>
+                    <span>Table</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => addBlock("columns")}
+                    className="px-2 py-1 rounded-lg text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-white/10 border border-slate-200/60 dark:border-transparent transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Add 2-Column Block"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">view_column</span>
+                    <span>2-Col</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Article Title */}
             <div>
               <input
